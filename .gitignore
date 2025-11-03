@@ -1,49 +1,88 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
+# -----------------------------------------
+# OS / Editor junk
+# -----------------------------------------
 .DS_Store
+Thumbs.db
+*.log
+*.swp
+*.tmp
+*.lock
+.idea/
+.vscode/
 .atom/
-.build/
-.buildlog/
-.history
+.history/
 .svn/
-.swiftpm/
+.buildlog/
 migrate_working_dir/
-
-# IntelliJ related
 *.iml
 *.ipr
 *.iws
-.idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# -----------------------------------------
+# Flutter / Dart / Pub
+# -----------------------------------------
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
 /build/
+**/doc/api/
+**/ios/Flutter/.last_build_id
 
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
+# -----------------------------------------
+# Android build artifacts
+# -----------------------------------------
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/.gradle/
+/android/local.properties
+android/app/build/
+# -----------------------------------------
+# iOS / macOS build artifacts
+# -----------------------------------------
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/ServiceDefinitions.json
+macos/Pods/
+macos/.symlinks/
 
-# Environment configuration
+# -----------------------------------------
+# Web build artifacts
+# -----------------------------------------
+/web/.dart_tool/
+/web/build/
+
+# -----------------------------------------
+# Generated symbol & obfuscation files
+# -----------------------------------------
+app.*.symbols
+app.*.map.json
+
+# -----------------------------------------
+# Environment or secret configuration files
+# -----------------------------------------
 lib/core/config/env_config.dart
 lib/core/config/*_config.dart
+.env
+.env.*
+firebase_options.dart
+google-services.json
+GoogleService-Info.plist
+supabase.json
+
+# -----------------------------------------
+# Optional: large local data or test files
+# -----------------------------------------
+assets/dummy/
+assets/temp/
+*.aab
+*.apk
+*.ipa
+*.zip
+*.mp4
+*.mov
