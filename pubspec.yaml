@@ -1,0 +1,115 @@
+name: mch_pink_book
+description: Digital Mother & Child Health Booklet for Kenya
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  app_links: ^6.3.2 
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.3.3
+
+  # Supabase & Backend
+  supabase_flutter: ^2.10.2
+
+  # Local Storage & Offline
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.1
+  flutter_secure_storage: ^10.0.0-beta.4
+
+  # Network
+  connectivity_plus: ^7.0.0
+  dio: ^5.4.0
+
+  # UI Components
+  fl_chart: ^1.1.0
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.1.2
+  image_picker: ^1.0.7
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+
+  # Localization
+  intl: ^0.20.2
+  flutter_localizations:
+    sdk: flutter
+
+  # Notifications
+  firebase_core: ^4.1.1
+  firebase_messaging: ^16.0.2
+  flutter_local_notifications: ^19.4.2
+
+  # Audio & Media
+  just_audio: ^0.10.5
+  audioplayers: ^6.5.1
+
+  # PDF & Documents
+  pdf: ^3.10.7
+  printing: ^5.11.1
+
+  # Utilities
+  uuid: ^4.2.2
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+
+  # Date & Time
+  timeago: ^3.6.0
+
+  # Analytics & Monitoring
+  sentry_flutter: ^9.6.0
+
+  # Phone Number
+  phone_numbers_parser: ^9.0.15
+
+  # Permissions
+  permission_handler: ^12.0.1
+
+  # Icons
+  cupertino_icons: ^1.0.6
+  provider: ^6.1.5+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code Generation
+  build_runner: ^2.4.7
+  riverpod_generator: ^2.3.9
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  hive_generator: ^2.0.1
+
+  # Linting
+  flutter_lints: ^5.0.0
+
+  # Testing
+  mockito: ^5.4.4
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+  # Assets
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/audio/
+    - assets/pdfs/
+
+  # Fonts (now properly mapped to your folder)
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto/static/Roboto-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Roboto/static/Roboto-Bold.ttf
+          weight: 700
