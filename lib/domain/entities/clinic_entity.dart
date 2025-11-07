@@ -1,7 +1,4 @@
-/// Clinic Entity (Domain Layer)
-/// Represents a health facility/clinic
-library;
-
+// lib/domain/entities/clinic_entity.dart
 import 'package:equatable/equatable.dart';
 
 class ClinicEntity extends Equatable {
@@ -12,7 +9,7 @@ class ClinicEntity extends Equatable {
   final String? address;
   final String? contact;
   final String? email;
-  final String? mflCode; // Master Facility List code
+  final String? mflCode;
   final bool isActive;
   final Map<String, dynamic> metadata;
   final DateTime createdAt;
@@ -33,53 +30,20 @@ class ClinicEntity extends Equatable {
     required this.updatedAt,
   });
 
-  /// Get full address
-  String get fullAddress {
-    final parts = <String>[];
-    if (address != null && address!.isNotEmpty) parts.add(address!);
-    if (subcounty != null && subcounty!.isNotEmpty) parts.add(subcounty!);
-    parts.add(county);
-    return parts.join(', ');
-  }
-
-  /// Get display name with location
-  String get displayNameWithLocation => '$name, $county';
-
-  /// Check if clinic has complete information
-  bool get hasCompleteInfo {
-    return name.isNotEmpty &&
-        county.isNotEmpty &&
-        contact != null &&
-        contact!.isNotEmpty;
-  }
-
-  ClinicEntity copyWith({
-    String? id,
-    String? name,
-    String? county,
-    String? subcounty,
-    String? address,
-    String? contact,
-    String? email,
-    String? mflCode,
-    bool? isActive,
-    Map<String, dynamic>? metadata,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
+  factory ClinicEntity.fromJson(Map<String, dynamic> json) {
     return ClinicEntity(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      county: county ?? this.county,
-      subcounty: subcounty ?? this.subcounty,
-      address: address ?? this.address,
-      contact: contact ?? this.contact,
-      email: email ?? this.email,
-      mflCode: mflCode ?? this.mflCode,
-      isActive: isActive ?? this.isActive,
-      metadata: metadata ?? this.metadata,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      id: json['id'] as String,
+      name: json['name'] as String,
+      county: json['county'] as String,
+      subcounty: json['subcounty'] as String?,
+      address: json['address'] as String?,
+      contact: json['contact'] as String?,
+      email: json['email'] as String?,
+      mflCode: json['mfl_code'] as String?,
+      isActive: json['is_active'] as bool? ?? true,
+      metadata: (json['metadata'] as Map?)?.cast<String, dynamic>() ?? {},
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 

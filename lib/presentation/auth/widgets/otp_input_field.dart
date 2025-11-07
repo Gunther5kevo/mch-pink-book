@@ -70,11 +70,6 @@ class _OtpInputFieldState extends State<OtpInputField> {
     }
   }
 
-  void _onBackspace(int index) {
-    if (index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

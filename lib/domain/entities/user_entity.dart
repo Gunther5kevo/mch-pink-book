@@ -305,6 +305,8 @@ class UserEntity extends Equatable {
         lastVisitDate,
       ];
 
+  String? get photoUrl => null;
+
   @override
   String toString() {
     return 'UserEntity(id: $id, name: $fullName, role: $role, email: $email, phone: $phoneE164, setupComplete: $hasCompletedSetup)';

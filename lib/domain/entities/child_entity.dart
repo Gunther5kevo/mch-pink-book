@@ -2,6 +2,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
+import 'package:postgrest/src/types.dart';
 
 class ChildEntity extends Equatable {
   final String id;
@@ -47,6 +48,37 @@ class ChildEntity extends Equatable {
     required this.createdAt,
     required this.updatedAt,
   });
+
+factory ChildEntity.fromJson(PostgrestMap json) {
+    return ChildEntity(
+      id: json['id'] as String,
+      motherId: json['mother_id'] as String,
+      pregnancyId: json['pregnancy_id'] as String?,
+      name: json['name'] as String,
+      dateOfBirth: DateTime.parse(json['date_of_birth'] as String),
+      gender: json['gender'] as String,
+      birthWeight: json['birth_weight'] != null
+          ? double.tryParse(json['birth_weight'].toString())
+          : null,
+      birthLength: json['birth_length'] != null
+          ? double.tryParse(json['birth_length'].toString())
+          : null,
+      headCircumference: json['head_circumference'] != null
+          ? double.tryParse(json['head_circumference'].toString())
+          : null,
+      birthPlace: json['birth_place'] as String?,
+      birthCertificateNo: json['birth_certificate_no'] as String?,
+      apgarScore: json['apgar_score'] as Map<String, dynamic>?,
+      birthComplications: json['birth_complications'] as String?,
+      uniqueQrCode: json['unique_qr_code'] as String,
+      photoUrl: json['photo_url'] as String?,
+      isActive: json['is_active'] as bool? ?? true,
+      version: json['version'] as int? ?? 1,
+      lastUpdatedAt: DateTime.parse(json['last_updated_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
 
   /// Calculate age in months
   int get ageInMonths {
@@ -147,7 +179,7 @@ class ChildEntity extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
-
+String get fullName => name.trim();
   @override
   List<Object?> get props => [
         id,
@@ -171,4 +203,8 @@ class ChildEntity extends Equatable {
         createdAt,
         updatedAt,
       ];
+
+  get dateOfBirthFormatted => null;
+
+
 }

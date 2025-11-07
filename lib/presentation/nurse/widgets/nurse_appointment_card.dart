@@ -3,10 +3,13 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/entities/appointment_entity.dart';
 
-class NurseAppointmentCard extends StatelessWidget {
+class NurseAppointmentCard extends ConsumerWidget {
   final AppointmentEntity appointment;
   final VoidCallback? onTap;
   final VoidCallback? onMarkAttendance;
@@ -23,9 +26,12 @@ class NurseAppointmentCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final statusInfo = _getStatusInfo();
     final typeInfo = _getTypeInfo();
+
+    // Fetch patient name once per card
+    final patientNameAsync = ref.watch(_patientNameProvider(appointment.userId));
 
     return Card(
       elevation: appointment.isToday ? 6 : 2,
@@ -66,10 +72,28 @@ class NurseAppointmentCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Patient: ${appointment.userId.substring(0, 8)}...',
-                          style: AppTextStyles.bodyLarge.copyWith(
-                            fontWeight: FontWeight.bold,
+                        // Patient Name (or ID fallback)
+                        patientNameAsync.when(
+                          data: (name) => Text(
+                            name,
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          loading: () => Text(
+                            'Loading...',
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textLight,
+                            ),
+                          ),
+                          error: (_, __) => Text(
+                            'Patient: ${appointment.userId.substring(0, 8)}...',
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textLight,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -133,6 +157,9 @@ class NurseAppointmentCard extends StatelessWidget {
     );
   }
 
+  // -----------------------------------------------------------------
+  // UI Helpers (unchanged from your original)
+  // -----------------------------------------------------------------
   Widget _buildStatusBadge(_StatusInfo info) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -360,11 +387,28 @@ class NurseAppointmentCard extends StatelessWidget {
       VisitType.delivery => _TypeInfo('Delivery', Colors.purple, Icons.local_hospital),
       VisitType.postnatal => _TypeInfo('Postnatal', AppColors.accentBlue, Icons.child_care),
       VisitType.immunization => _TypeInfo('Immunization', AppColors.accentGreen, Icons.vaccines),
-      VisitType.growthMonitoring => _TypeInfo('Growth Check', AppColors.accentOrange, Icons.show_chart),
+      VisitType.growth_monitoring => _TypeInfo('Growth Check', AppColors.accentOrange, Icons.show_chart),
       VisitType.general => _TypeInfo('General Visit', AppColors.textLight, Icons.healing),
     };
   }
 }
+
+// -----------------------------------------------------------------
+// Private Provider: Patient Name
+// -----------------------------------------------------------------
+final _patientNameProvider = FutureProvider.family<String, String>((ref, userId) async {
+  try {
+    final response = await Supabase.instance.client
+        .from('users')
+        .select('name')
+        .eq('id', userId)
+        .maybeSingle();
+
+    return response?['name'] as String? ?? 'Unknown Patient';
+  } catch (e) {
+    return 'Patient: ${userId.substring(0, 8)}...';
+  }
+});
 
 class _StatusInfo {
   final String label;

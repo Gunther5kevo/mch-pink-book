@@ -160,7 +160,7 @@ class AppointmentModel {
       case 'immunization':
         return VisitType.immunization;
       case 'growth_monitoring':
-        return VisitType.growthMonitoring;
+        return VisitType.growth_monitoring;
       case 'postnatal':
         return VisitType.postnatal;
       case 'delivery':

@@ -1,9 +1,12 @@
+/// lib/presentation/providers/appointments_provider.dart
+///
 /// Appointments Provider
 /// State management for appointments (nurse + mother)
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mch_pink_book/presentation/providers/providers.dart';
+
 import '../../domain/entities/appointment_entity.dart';
 import '../../data/repositories/appointments_repository.dart';
 import '../../core/constants/app_constants.dart';
@@ -12,6 +15,8 @@ import '../../core/constants/app_constants.dart';
 /// 1. Repository
 /// ---------------------------------------------------
 final appointmentsRepositoryProvider = Provider<AppointmentsRepository>((ref) {
+  // No clinicId passed here – the repo will fetch it from the logged-in user
+  // (or you can pass one via AppointmentsRepository(clinicId: …) if you have it in auth)
   return AppointmentsRepository();
 });
 
@@ -43,7 +48,6 @@ final upcomingAppointmentsCountProvider = FutureProvider<int>((ref) async {
 /// 3. MOTHER-SIDE – filtered per-user
 /// ---------------------------------------------------
 
-/// Enum used only for mother-side filtering
 enum MotherAppointmentFilter { upcoming, past, cancelled }
 
 extension _MotherFilterX on MotherAppointmentFilter {
@@ -60,7 +64,6 @@ extension _MotherFilterX on MotherAppointmentFilter {
   }
 }
 
-/// Mother appointments – filtered by status
 final motherAppointmentsProvider = FutureProvider.family<
     List<AppointmentEntity>,
     (String, MotherAppointmentFilter)>((ref, params) async {
@@ -117,6 +120,7 @@ class AppointmentActions {
     _invalidateAll();
   }
 
+  /// **NOTE:** `clinicId` is **no longer required** – the repo resolves it.
   Future<AppointmentEntity> createAppointment({
     required String userId,
     String? childId,
@@ -124,7 +128,6 @@ class AppointmentActions {
     required VisitType type,
     required DateTime scheduledAt,
     required int durationMinutes,
-    String? clinicId,
     String? providerId,
     String? notes,
     String notificationType = 'both',
@@ -136,7 +139,7 @@ class AppointmentActions {
       type: type,
       scheduledAt: scheduledAt,
       durationMinutes: durationMinutes,
-      clinicId: clinicId,
+      // clinicId: omitted – repo fetches it from the nurse's user row
       providerId: providerId,
       notes: notes,
       notificationType: notificationType,

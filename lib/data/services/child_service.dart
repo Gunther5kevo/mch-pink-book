@@ -27,7 +27,18 @@ class ChildService {
       throw Exception('Failed to fetch children: $e');
     }
   }
+Future<List<ChildEntity>> getAllChildren() async {
+  try {
+    final response = await _supabase.from('children').select();
 
+    return (response as List)
+        .cast<PostgrestMap>() // Safe cast
+        .map(ChildEntity.fromJson)
+        .toList();
+  } catch (e) {
+    throw Exception('Failed to fetch all children: $e');
+  }
+}
   /// Get a single child by ID
   Future<ChildEntity?> getChildById(String childId) async {
     try {

@@ -3,6 +3,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
+import 'package:mch_pink_book/core/constants/app_constants.dart';
 
 class PregnancyEntity extends Equatable {
   final String id;
@@ -11,17 +12,17 @@ class PregnancyEntity extends Equatable {
   final DateTime startDate;
   final DateTime expectedDelivery;
   final DateTime? actualDelivery;
-  final DateTime? lmp; // Last Menstrual Period
-  final String? eddConfirmedBy; // ultrasound, lmp, etc
-  final int? gravida; // Total pregnancies
-  final int? parity; // Births after 28 weeks
+  final DateTime? lmp;
+  final String? eddConfirmedBy;
+  final int? gravida;
+  final int? parity;
   final List<String> riskFlags;
   final String? bloodGroup;
   final String? rhesus;
   final String? hivStatus;
   final String? syphilisStatus;
   final String? hepatitisB;
-  final String? outcome; // ongoing, live_birth, stillbirth, miscarriage
+  final String? outcome;
   final DateTime? outcomeDate;
   final String? deliveryPlace;
   final String? notes;
@@ -59,7 +60,24 @@ class PregnancyEntity extends Equatable {
     required this.updatedAt,
   });
 
-  /// Calculate current gestational age in weeks
+  // ───────────────────────────────────────────────────────────────────────
+  // FORMATTED DATE GETTERS (Non-nullable!)
+  // ───────────────────────────────────────────────────────────────────────
+  String get expectedDeliveryFormatted {
+    return expectedDelivery.formattedDate; // uses your DateTimeX extension
+  }
+
+  String get lmpFormatted {
+    return lmp?.formattedDate ?? '—';
+  }
+
+  String get actualDeliveryFormatted {
+    return actualDelivery?.formattedDate ?? '—';
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // CALCULATED VALUES
+  // ───────────────────────────────────────────────────────────────────────
   int get gestationalAgeWeeks {
     if (lmp == null) return 0;
     final now = actualDelivery ?? DateTime.now();
@@ -67,23 +85,18 @@ class PregnancyEntity extends Equatable {
     return (days / 7).floor();
   }
 
-  /// Calculate gestational age at a specific date
   int gestationalAgeAt(DateTime date) {
     if (lmp == null) return 0;
     final days = date.difference(lmp!).inDays;
     return (days / 7).floor();
   }
 
-  /// Check if pregnancy is high risk
   bool get isHighRisk => riskFlags.isNotEmpty;
 
-  /// Check if pregnancy is ongoing
   bool get isOngoing => outcome == null || outcome == 'ongoing';
 
-  /// Check if pregnancy is completed
   bool get isCompleted => outcome != null && outcome != 'ongoing';
 
-  /// Get trimester (1, 2, or 3)
   int get trimester {
     final weeks = gestationalAgeWeeks;
     if (weeks <= 13) return 1;
@@ -91,25 +104,25 @@ class PregnancyEntity extends Equatable {
     return 3;
   }
 
-  /// Days until expected delivery
   int get daysUntilDelivery {
     final now = DateTime.now();
     if (now.isAfter(expectedDelivery)) return 0;
     return expectedDelivery.difference(now).inDays;
   }
 
-  /// Check if pregnancy is overdue
   bool get isOverdue {
     return DateTime.now().isAfter(expectedDelivery) && isOngoing;
   }
 
-  /// Get pregnancy status text
   String get statusText {
     if (!isOngoing) return outcome ?? 'Completed';
     if (isOverdue) return 'Overdue';
     return '$gestationalAgeWeeks weeks';
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // COPY WITH
+  // ───────────────────────────────────────────────────────────────────────
   PregnancyEntity copyWith({
     String? id,
     String? motherId,

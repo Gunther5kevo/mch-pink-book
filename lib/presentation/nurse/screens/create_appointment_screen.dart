@@ -5,6 +5,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mch_pink_book/domain/entities/patient_entity.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../providers/appointments_provider.dart';
@@ -127,7 +128,6 @@ class _CreateAppointmentScreenState
                 )
               else ...[
                 // ------------------- PATIENT SEARCH -------------------
-                // ------------------- PATIENT SEARCH -------------------
                 Text(
                   'Select Patient',
                   style: AppTextStyles.bodyLarge
@@ -139,7 +139,6 @@ class _CreateAppointmentScreenState
                   optionsBuilder: (textEditingValue) {
                     final query = textEditingValue.text.trim().toLowerCase();
 
-                    // Show all when empty
                     if (query.isEmpty) return filteredPatients;
 
                     return filteredPatients.where((p) =>
@@ -155,7 +154,6 @@ class _CreateAppointmentScreenState
                       controller: controller,
                       focusNode: focusNode,
                       onTap: () {
-                        // 🪄 Show dropdown immediately when tapped
                         if (controller.text.isEmpty) {
                           controller.text = ' ';
                           Future.delayed(const Duration(milliseconds: 50), () {
@@ -251,7 +249,7 @@ class _CreateAppointmentScreenState
                       .copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<VisitType>(
-                initialValue: _selectedType,
+                value: _selectedType,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: AppColors.cardBackground,
@@ -343,7 +341,7 @@ class _CreateAppointmentScreenState
                       .copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<int>(
-                initialValue: _durationMinutes,
+                value: _durationMinutes,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: AppColors.cardBackground,
@@ -396,15 +394,18 @@ class _CreateAppointmentScreenState
     setState(() => _isSubmitting = true);
 
     try {
-      await ref.read(appointmentActionsProvider).createAppointment(
-            userId: _selectedPatientId!,
-            type: _selectedType,
-            scheduledAt: _selectedDate,
-            durationMinutes: _durationMinutes,
-            notes: _notesController.text.trim().isEmpty
-                ? null
-                : _notesController.text.trim(),
-          );
+      // Use the repository directly — it auto-fetches clinic_id
+      final repo = ref.read(appointmentsRepositoryProvider);
+
+      await repo.createAppointment(
+        userId: _selectedPatientId!,
+        type: _selectedType,
+        scheduledAt: _selectedDate,
+        durationMinutes: _durationMinutes,
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
+      );
 
       if (!mounted) return;
 

@@ -199,7 +199,7 @@ class _PatientCard extends StatelessWidget {
       VisitType.delivery => _TypeInfo('Delivery', Colors.purple, Icons.local_hospital),
       VisitType.postnatal => _TypeInfo('Postnatal', AppColors.accentBlue, Icons.child_care),
       VisitType.immunization => _TypeInfo('Immunization', AppColors.accentGreen, Icons.vaccines),
-      VisitType.growthMonitoring => _TypeInfo('Growth Check', AppColors.accentOrange, Icons.show_chart),
+      VisitType.growth_monitoring => _TypeInfo('Growth Check', AppColors.accentOrange, Icons.show_chart),
       VisitType.general => _TypeInfo('General Visit', AppColors.textLight, Icons.healing),
     };
   }

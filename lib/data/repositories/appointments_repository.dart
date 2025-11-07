@@ -1,3 +1,4 @@
+/// lib/data/repositories/appointments_repository.dart
 library;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -39,7 +40,7 @@ class AppointmentsRepository {
       _logPostgrestError('getClinicAppointments', e);
       throw _handlePostgrestError(e);
     } catch (e) {
-      print('❌ Unexpected error in getClinicAppointments: $e');
+      print('Unexpected error in getClinicAppointments: $e');
       throw Exception('Failed to load clinic appointments: $e');
     }
   }
@@ -76,7 +77,7 @@ class AppointmentsRepository {
       _logPostgrestError('getPatientAppointments', e);
       throw _handlePostgrestError(e);
     } catch (e) {
-      print('❌ Unexpected error in getPatientAppointments: $e');
+      print('Unexpected error in getPatientAppointments: $e');
       throw Exception('Failed to load patient appointments: $e');
     }
   }
@@ -142,6 +143,30 @@ class AppointmentsRepository {
       final now = DateTime.now();
       final id = _uuid.v4();
 
+      // ---------------------------------------------------------------
+      // 1. Resolve clinic_id
+      // ---------------------------------------------------------------
+      String? resolvedClinicId = clinicId;
+
+      // If not passed, fetch from current user
+      if (resolvedClinicId == null && _client.auth.currentUser != null) {
+        final userResp = await _client
+            .from('users')
+            .select('clinic_id')
+            .eq('id', _client.auth.currentUser!.id)
+            .maybeSingle();
+
+        resolvedClinicId = userResp?['clinic_id'] as String?;
+      }
+
+      // Fallback to constructor-provided currentClinicId
+      if (resolvedClinicId == null && currentClinicId != null && _isValidUuid(currentClinicId!)) {
+        resolvedClinicId = currentClinicId;
+      }
+
+      // ---------------------------------------------------------------
+      // 2. Build payload
+      // ---------------------------------------------------------------
       final payload = {
         'id': id,
         'user_id': userId,
@@ -151,10 +176,9 @@ class AppointmentsRepository {
         'type': type.name,
         'scheduled_at': scheduledAt.toIso8601String(),
         'duration_minutes': durationMinutes,
-        if (clinicId != null && _isValidUuid(clinicId))
-          'clinic_id': clinicId
-        else if (currentClinicId != null && _isValidUuid(currentClinicId!))
-          'clinic_id': currentClinicId,
+        if (resolvedClinicId != null && _isValidUuid(resolvedClinicId))
+          'clinic_id': resolvedClinicId,
+        // If you have a DB trigger, just omit the line above
         if (providerId != null && _isValidUuid(providerId))
           'provider_id': providerId,
         'status': AppointmentStatus.scheduled.name,
@@ -166,18 +190,18 @@ class AppointmentsRepository {
         'updated_at': now.toIso8601String(),
       };
 
-      print('🟢 Creating appointment with payload: $payload');
+      print('Creating appointment with payload: $payload');
 
       final response =
           await _client.from('appointments').insert(payload).select().single();
 
-      print('✅ Appointment created: $response');
+      print('Appointment created: $response');
       return AppointmentEntity.fromJson(response);
     } on PostgrestException catch (e) {
       _logPostgrestError('createAppointment', e);
       throw _handlePostgrestError(e);
     } catch (e) {
-      print('❌ Unexpected error in createAppointment: $e');
+      print('Unexpected error in createAppointment: $e');
       throw Exception('Failed to create appointment: $e');
     }
   }
@@ -224,7 +248,7 @@ class AppointmentsRepository {
 
   /// Centralized error printer for debug
   void _logPostgrestError(String context, PostgrestException e) {
-    print('🚨 Supabase Error in $context');
+    print('Supabase Error in $context');
     print('Message: ${e.message}');
     print('Code: ${e.code}');
     print('Details: ${e.details}');

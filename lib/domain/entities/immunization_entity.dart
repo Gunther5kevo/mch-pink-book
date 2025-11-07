@@ -1,21 +1,16 @@
-/// Immunization Entity (Domain Layer)
-/// Represents a vaccine administration record
-library;
-
-import 'package:equatable/equatable.dart';
-
-class ImmunizationEntity extends Equatable {
+// lib/core/entities/immunization_entity.dart
+class ImmunizationEntity {
   final String id;
   final String childId;
-  final String vaccineCode; // BCG, OPV1, DTP1, etc
+  final String vaccineCode;
   final String vaccineName;
   final DateTime? scheduledDate;
   final DateTime administeredDate;
-  final int? ageAtAdministration; // in months
+  final int? ageAtAdministration; // in days
   final String? batchNumber;
   final String? manufacturer;
   final int? doseNumber;
-  final String? site; // left_arm, right_thigh, etc
+  final String? site;
   final String? administeredBy;
   final String? clinicId;
   final String? adverseEvents;
@@ -24,7 +19,7 @@ class ImmunizationEntity extends Equatable {
   final DateTime lastUpdatedAt;
   final DateTime createdAt;
 
-  const ImmunizationEntity({
+  ImmunizationEntity({
     required this.id,
     required this.childId,
     required this.vaccineCode,
@@ -45,49 +40,50 @@ class ImmunizationEntity extends Equatable {
     required this.createdAt,
   });
 
-  /// Check if vaccine was given on time
-  bool get isOnTime {
-    if (scheduledDate == null) return true;
-    final daysDifference = administeredDate.difference(scheduledDate!).inDays;
-    return daysDifference.abs() <= 7; // Within 7 days is considered on time
+  factory ImmunizationEntity.fromJson(Map<String, dynamic> json) {
+    return ImmunizationEntity(
+      id: json['id'] as String,
+      childId: json['child_id'] as String,
+      vaccineCode: json['vaccine_code'] as String,
+      vaccineName: json['vaccine_name'] as String,
+      scheduledDate: json['scheduled_date'] != null
+          ? DateTime.parse(json['scheduled_date'])
+          : null,
+      administeredDate: DateTime.parse(json['administered_date']),
+      ageAtAdministration: json['age_at_administration'] as int?,
+      batchNumber: json['batch_number'] as String?,
+      manufacturer: json['manufacturer'] as String?,
+      doseNumber: json['dose_number'] as int?,
+      site: json['site'] as String?,
+      administeredBy: json['administered_by'] as String?,
+      clinicId: json['clinic_id'] as String?,
+      adverseEvents: json['adverse_events'] as String?,
+      notes: json['notes'] as String?,
+      version: json['version'] as int? ?? 1,
+      lastUpdatedAt: DateTime.parse(json['last_updated_at']),
+      createdAt: DateTime.parse(json['created_at']),
+    );
   }
 
-  /// Check if vaccine was delayed
-  bool get isDelayed {
-    if (scheduledDate == null) return false;
-    return administeredDate.isAfter(scheduledDate!.add(const Duration(days: 7)));
-  }
-
-  /// Check if vaccine was given early
-  bool get isEarly {
-    if (scheduledDate == null) return false;
-    return administeredDate.isBefore(scheduledDate!.subtract(const Duration(days: 7)));
-  }
-
-  /// Check if there were adverse events
-  bool get hadAdverseEvents {
-    return adverseEvents != null && adverseEvents!.isNotEmpty;
-  }
-
-  /// Get vaccine status badge text
-  String get statusBadge {
-    if (isOnTime) return 'On Time';
-    if (isDelayed) return 'Delayed';
-    if (isEarly) return 'Early';
-    return 'Given';
-  }
-
-  /// Get formatted administered date
-  String get formattedDate {
-    return '${administeredDate.day}/${administeredDate.month}/${administeredDate.year}';
-  }
-
-  /// Get vaccine display name with dose number
-  String get displayName {
-    if (doseNumber != null) {
-      return '$vaccineName (Dose $doseNumber)';
-    }
-    return vaccineName;
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'child_id': childId,
+      'vaccine_code': vaccineCode,
+      'vaccine_name': vaccineName,
+      'scheduled_date': scheduledDate?.toIso8601String().split('T').first,
+      'administered_date': administeredDate.toIso8601String().split('T').first,
+      'age_at_administration': ageAtAdministration,
+      'batch_number': batchNumber,
+      'manufacturer': manufacturer,
+      'dose_number': doseNumber,
+      'site': site,
+      'administered_by': administeredBy,
+      'clinic_id': clinicId,
+      'adverse_events': adverseEvents,
+      'notes': notes,
+      'version': version,
+    };
   }
 
   ImmunizationEntity copyWith({
@@ -131,26 +127,4 @@ class ImmunizationEntity extends Equatable {
       createdAt: createdAt ?? this.createdAt,
     );
   }
-
-  @override
-  List<Object?> get props => [
-        id,
-        childId,
-        vaccineCode,
-        vaccineName,
-        scheduledDate,
-        administeredDate,
-        ageAtAdministration,
-        batchNumber,
-        manufacturer,
-        doseNumber,
-        site,
-        administeredBy,
-        clinicId,
-        adverseEvents,
-        notes,
-        version,
-        lastUpdatedAt,
-        createdAt,
-      ];
 }

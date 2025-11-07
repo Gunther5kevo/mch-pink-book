@@ -1,35 +1,30 @@
-/// Visit Entity (Domain Layer)
-/// Represents a clinical visit
-library;
+import 'package:mch_pink_book/core/constants/app_constants.dart' show VisitType;
 
-import 'package:equatable/equatable.dart';
-import '../../core/constants/app_constants.dart';
-
-class VisitEntity extends Equatable {
+class VisitEntity {
   final String id;
-  final String subjectId; // mother_id or child_id
-  final String subjectType; // 'mother' or 'child'
+  final String subjectId;
+  final String subjectType;
   final String? pregnancyId;
   final VisitType type;
   final int? visitNumber;
   final DateTime visitDate;
-  final int? gestationWeeks; // for ANC visits
+  final int? gestationWeeks;
   final String providerId;
   final String clinicId;
-  final Map<String, dynamic> vitals; // BP, weight, temp, pulse, etc
-  final Map<String, dynamic> labResults; // hemoglobin, urine tests, etc
-  final Map<String, dynamic> examination; // physical exam findings
+  final Map<String, dynamic> vitals;
+  final Map<String, dynamic> labResults;
+  final Map<String, dynamic> examination;
   final List<Map<String, dynamic>> prescriptions;
   final List<Map<String, dynamic>> referrals;
   final DateTime? nextVisitDate;
   final String? advice;
   final String? notes;
   final int version;
-  final DateTime lastUpdatedAt;
+  final DateTime? lastUpdatedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  const VisitEntity({
+  VisitEntity({
     required this.id,
     required this.subjectId,
     required this.subjectType,
@@ -40,137 +35,75 @@ class VisitEntity extends Equatable {
     this.gestationWeeks,
     required this.providerId,
     required this.clinicId,
-    required this.vitals,
-    required this.labResults,
-    required this.examination,
-    required this.prescriptions,
-    required this.referrals,
+    this.vitals = const {},
+    this.labResults = const {},
+    this.examination = const {},
+    this.prescriptions = const [],
+    this.referrals = const [],
     this.nextVisitDate,
     this.advice,
     this.notes,
     required this.version,
-    required this.lastUpdatedAt,
+    this.lastUpdatedAt,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  /// Check if visit is for a mother
-  bool get isMother => subjectType == 'mother';
-
-  /// Check if visit is for a child
-  bool get isChild => subjectType == 'child';
-
-  /// Check if this is an ANC visit
-  bool get isANCVisit => type == VisitType.anc;
-
-  /// Check if referral was given
-  bool get hasReferrals => referrals.isNotEmpty;
-
-  /// Check if prescriptions were given
-  bool get hasPrescriptions => prescriptions.isNotEmpty;
-
-  /// Get blood pressure reading
-  String? get bloodPressure {
-    if (vitals.containsKey('bp_systolic') && vitals.containsKey('bp_diastolic')) {
-      return '${vitals['bp_systolic']}/${vitals['bp_diastolic']}';
-    }
-    return null;
-  }
-
-  /// Get weight reading
-  double? get weight {
-    if (vitals.containsKey('weight')) {
-      return (vitals['weight'] as num).toDouble();
-    }
-    return null;
-  }
-
-  /// Get temperature reading
-  double? get temperature {
-    if (vitals.containsKey('temp')) {
-      return (vitals['temp'] as num).toDouble();
-    }
-    return null;
-  }
-
-  /// Get formatted visit date
-  String get formattedDate {
-    return '${visitDate.day}/${visitDate.month}/${visitDate.year}';
-  }
-
-  VisitEntity copyWith({
-    String? id,
-    String? subjectId,
-    String? subjectType,
-    String? pregnancyId,
-    VisitType? type,
-    int? visitNumber,
-    DateTime? visitDate,
-    int? gestationWeeks,
-    String? providerId,
-    String? clinicId,
-    Map<String, dynamic>? vitals,
-    Map<String, dynamic>? labResults,
-    Map<String, dynamic>? examination,
-    List<Map<String, dynamic>>? prescriptions,
-    List<Map<String, dynamic>>? referrals,
-    DateTime? nextVisitDate,
-    String? advice,
-    String? notes,
-    int? version,
-    DateTime? lastUpdatedAt,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
+  factory VisitEntity.fromJson(Map<String, dynamic> json) {
     return VisitEntity(
-      id: id ?? this.id,
-      subjectId: subjectId ?? this.subjectId,
-      subjectType: subjectType ?? this.subjectType,
-      pregnancyId: pregnancyId ?? this.pregnancyId,
-      type: type ?? this.type,
-      visitNumber: visitNumber ?? this.visitNumber,
-      visitDate: visitDate ?? this.visitDate,
-      gestationWeeks: gestationWeeks ?? this.gestationWeeks,
-      providerId: providerId ?? this.providerId,
-      clinicId: clinicId ?? this.clinicId,
-      vitals: vitals ?? this.vitals,
-      labResults: labResults ?? this.labResults,
-      examination: examination ?? this.examination,
-      prescriptions: prescriptions ?? this.prescriptions,
-      referrals: referrals ?? this.referrals,
-      nextVisitDate: nextVisitDate ?? this.nextVisitDate,
-      advice: advice ?? this.advice,
-      notes: notes ?? this.notes,
-      version: version ?? this.version,
-      lastUpdatedAt: lastUpdatedAt ?? this.lastUpdatedAt,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      id: json['id'] as String,
+      subjectId: json['subject_id'] as String,
+      subjectType: json['subject_type'] as String,
+      pregnancyId: json['pregnancy_id'] as String?,
+      type: VisitType.fromString(json['type'] as String),
+      visitNumber: json['visit_number'] as int?,
+      visitDate: DateTime.parse(json['visit_date'] as String),
+      gestationWeeks: json['gestation_weeks'] as int?,
+      providerId: json['provider_id'] as String,
+      clinicId: json['clinic_id'] as String,
+      vitals: Map<String, dynamic>.from(json['vitals'] ?? {}),
+      labResults: Map<String, dynamic>.from(json['lab_results'] ?? {}),
+      examination: Map<String, dynamic>.from(json['examination'] ?? {}),
+      prescriptions: List<Map<String, dynamic>>.from(json['prescriptions'] ?? []),
+      referrals: List<Map<String, dynamic>>.from(json['referrals'] ?? []),
+      nextVisitDate: json['next_visit_date'] != null
+          ? DateTime.parse(json['next_visit_date'] as String)
+          : null,
+      advice: json['advice'] as String?,
+      notes: json['notes'] as String?,
+      version: (json['version'] as int?) ?? 1,
+      lastUpdatedAt: json['last_updated_at'] != null
+          ? DateTime.parse(json['last_updated_at'] as String)
+          : null,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
-  @override
-  List<Object?> get props => [
-        id,
-        subjectId,
-        subjectType,
-        pregnancyId,
-        type,
-        visitNumber,
-        visitDate,
-        gestationWeeks,
-        providerId,
-        clinicId,
-        vitals,
-        labResults,
-        examination,
-        prescriptions,
-        referrals,
-        nextVisitDate,
-        advice,
-        notes,
-        version,
-        lastUpdatedAt,
-        createdAt,
-        updatedAt,
-      ];
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'subject_id': subjectId,
+      'subject_type': subjectType,
+      'pregnancy_id': pregnancyId,
+      'type': type.dbValue,
+      'visit_number': visitNumber,
+      'visit_date': visitDate.toIso8601String(),
+      'gestation_weeks': gestationWeeks,
+      'provider_id': providerId,
+      'clinic_id': clinicId,
+      'vitals': vitals,
+      'lab_results': labResults,
+      'examination': examination,
+      'prescriptions': prescriptions,
+      'referrals': referrals,
+      'next_visit_date': nextVisitDate?.toIso8601String(),
+      'advice': advice,
+      'notes': notes,
+      'version': version,
+      'last_updated_at': lastUpdatedAt?.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
 }

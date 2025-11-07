@@ -4,14 +4,14 @@ library;
 
 import 'package:flutter/material.dart';
 
-/// App Colors - Based on Pink Book theme
+/// App Colors - Based on Pink Book theme (MCH Digital Health)
 class AppColors {
   // Primary Colors (Pink theme)
   static const Color primaryPink = Color(0xFFF48FB1);
   static const Color primaryPinkDark = Color(0xFFF06292);
   static const Color primaryPinkLight = Color(0xFFFCE4EC);
   
-  // Secondary Color (ADDED)
+  // Secondary Color
   static const Color secondary = Color(0xFF7E57C2); // Purple secondary color
   
   // Accent Colors
@@ -27,10 +27,17 @@ class AppColors {
   
   // Neutral Colors
   static const Color textDark = Color(0xFF212121);
-  static const Color textLight = Color(0xFF757575);
+  static const Color textMedium = Color(0xFF757575);
+  static const Color textLight = Color(0xFF9E9E9E);
   static const Color background = Color(0xFFFAFAFA);
   static const Color cardBackground = Colors.white;
   static const Color divider = Color(0xFFE0E0E0);
+  static const Color surface = Color(0xFFF5F5F5);
+
+  // Shadows & Overlays
+  static const Color shadow = Color(0x1F000000);
+  static const Color overlayDark = Color(0x80000000);
+  static const Color overlayLight = Color(0x1AFFFFFF);
 
   static get primaryBlue => null;
 }
@@ -60,6 +67,20 @@ class AppTextStyles {
     color: AppColors.textDark,
     fontFamily: fontFamily,
   );
+
+  static const TextStyle h4 = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textDark,
+    fontFamily: fontFamily,
+  );
+  
+  static const TextStyle h5 = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textDark,
+    fontFamily: fontFamily,
+  );
   
   // Body Text
   static const TextStyle bodyLarge = TextStyle(
@@ -84,12 +105,26 @@ class AppTextStyles {
   static const TextStyle button = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
+    color: Colors.white,
     fontFamily: fontFamily,
   );
   
   static const TextStyle caption = TextStyle(
     fontSize: 12,
-    color: AppColors.textLight,
+    color: AppColors.textMedium,
+    fontFamily: fontFamily,
+  );
+
+  static const TextStyle subtitle = TextStyle(
+    fontSize: 13,
+    color: AppColors.textMedium,
+    fontFamily: fontFamily,
+  );
+
+  // Error
+  static const TextStyle error = TextStyle(
+    fontSize: 14,
+    color: AppColors.error,
     fontFamily: fontFamily,
   );
 }
@@ -110,6 +145,7 @@ class AppBorderRadius {
   static const double md = 8.0;
   static const double lg = 12.0;
   static const double xl = 16.0;
+  static const double xxl = 24.0;
   static BorderRadius circular(double radius) => BorderRadius.circular(radius);
 }
 
@@ -120,49 +156,46 @@ class AppDurations {
   static const Duration long = Duration(milliseconds: 500);
 }
 
+/// Icons
+class AppIcons {
+  static const pregnant = Icons.pregnant_woman;
+  static const child = Icons.child_care;
+  static const calendar = Icons.calendar_today;
+  static const noteAdd = Icons.note_add;
+  static const vaccines = Icons.vaccines;
+  static const search = Icons.search;
+  static const share = Icons.share;
+  static const download = Icons.download;
+  static const qrCode = Icons.qr_code;
+  static const location = Icons.location_on_outlined;
+  static const check = Icons.check_circle;
+  static const schedule = Icons.schedule;
+  static const warning = Icons.warning_amber;
+  static const error = Icons.error_outline;
+  static const refresh = Icons.refresh;
+}
+
 /// User Roles
 enum UserRole {
   mother,
   nurse,
   admin;
 
-  String get displayName {
-    switch (this) {
-      case UserRole.mother:
-        return 'Mother';
-      case UserRole.nurse:
-        return 'Healthcare Provider';
-      case UserRole.admin:
-        return 'Administrator';
-    }
-  }
+  String get displayName => switch (this) {
+    UserRole.mother => 'Mother',
+    UserRole.nurse => 'Healthcare Provider',
+    UserRole.admin => 'Administrator',
+  };
   
-  /// Get user-friendly description
-  String get description {
-    switch (this) {
-      case UserRole.mother:
-        return 'Expectant or nursing mother';
-      case UserRole.nurse:
-        return 'Healthcare provider or nurse';
-      case UserRole.admin:
-        return 'System administrator';
-    }
-  }
+  String get description => switch (this) {
+    UserRole.mother => 'Expectant or nursing mother',
+    UserRole.nurse => 'Healthcare provider or nurse',
+    UserRole.admin => 'System administrator',
+  };
   
-  /// Check if role requires license number
-  bool get requiresLicense {
-    return this == UserRole.nurse || this == UserRole.admin;
-  }
-  
-  /// Check if role requires clinic assignment
-  bool get requiresClinic {
-    return this == UserRole.nurse;
-  }
-  
-  /// Check if role requires home clinic
-  bool get requiresHomeClinic {
-    return this == UserRole.mother;
-  }
+  bool get requiresLicense => this == UserRole.nurse || this == UserRole.admin;
+  bool get requiresClinic => this == UserRole.nurse;
+  bool get requiresHomeClinic => this == UserRole.mother;
 }
 
 /// Visit Types
@@ -171,25 +204,23 @@ enum VisitType {
   delivery,
   postnatal,
   immunization,
-  growthMonitoring,
+  growth_monitoring,
   general;
 
-  String get displayName {
-    switch (this) {
-      case VisitType.anc:
-        return 'ANC Visit';
-      case VisitType.delivery:
-        return 'Delivery';
-      case VisitType.postnatal:
-        return 'Postnatal';
-      case VisitType.immunization:
-        return 'Immunization';
-      case VisitType.growthMonitoring:
-        return 'Growth Monitoring';
-      case VisitType.general:
-        return 'General Visit';
-    }
+  String get displayName => switch (this) {
+    VisitType.anc => 'ANC Visit',
+    VisitType.delivery => 'Delivery',
+    VisitType.postnatal => 'Postnatal',
+    VisitType.immunization => 'Immunization',
+    VisitType.growth_monitoring => 'Growth Monitoring',
+    VisitType.general => 'General Visit',
+  };
+
+  static VisitType fromString(String value) {
+    return values.firstWhere((e) => e.name == value, orElse: () => VisitType.general);
   }
+
+  String get dbValue => name;
 }
 
 /// Appointment Status
@@ -200,145 +231,56 @@ enum AppointmentStatus {
   cancelled,
   rescheduled;
 
-  String get displayName {
-    switch (this) {
-      case AppointmentStatus.scheduled:
-        return 'Scheduled';
-      case AppointmentStatus.completed:
-        return 'Completed';
-      case AppointmentStatus.missed:
-        return 'Missed';
-      case AppointmentStatus.cancelled:
-        return 'Cancelled';
-      case AppointmentStatus.rescheduled:
-        return 'Rescheduled';
-    }
-  }
+  String get displayName => switch (this) {
+    AppointmentStatus.scheduled => 'Scheduled',
+    AppointmentStatus.completed => 'Completed',
+    AppointmentStatus.missed => 'Missed',
+    AppointmentStatus.cancelled => 'Cancelled',
+    AppointmentStatus.rescheduled => 'Rescheduled',
+  };
 
-  Color get color {
-    switch (this) {
-      case AppointmentStatus.scheduled:
-        return AppColors.info;
-      case AppointmentStatus.completed:
-        return AppColors.success;
-      case AppointmentStatus.missed:
-        return AppColors.error;
-      case AppointmentStatus.cancelled:
-        return AppColors.textLight;
-      case AppointmentStatus.rescheduled:
-        return AppColors.warning;
-    }
-  }
+  Color get color => switch (this) {
+    AppointmentStatus.scheduled => AppColors.info,
+    AppointmentStatus.completed => AppColors.success,
+    AppointmentStatus.missed => AppColors.error,
+    AppointmentStatus.cancelled => AppColors.textLight,
+    AppointmentStatus.rescheduled => AppColors.warning,
+  };
 }
-
 
 /// Language Options
 enum LanguageCode {
   en,
   sw;
 
-  String get displayName {
-    switch (this) {
-      case LanguageCode.en:
-        return 'English';
-      case LanguageCode.sw:
-        return 'Kiswahili';
-    }
-  }
+  String get displayName => switch (this) {
+    LanguageCode.en => 'English',
+    LanguageCode.sw => 'Kiswahili',
+  };
 
-  String get code {
-    return name;
-  }
+  String get code => name;
 }
 
 /// Kenyan EPI Immunization Schedule
 class ImmunizationSchedule {
   static const Map<String, Map<String, dynamic>> kenyaEPI = {
-    'BCG': {
-      'name': 'BCG Vaccine',
-      'ageWeeks': 0,
-      'description': 'Protects against tuberculosis',
-    },
-    'OPV0': {
-      'name': 'Oral Polio Vaccine 0',
-      'ageWeeks': 0,
-      'description': 'First dose of polio vaccine',
-    },
-    'OPV1': {
-      'name': 'Oral Polio Vaccine 1',
-      'ageWeeks': 6,
-      'description': 'Second dose of polio vaccine',
-    },
-    'DTP-HepB-Hib1': {
-      'name': 'Pentavalent 1',
-      'ageWeeks': 6,
-      'description': 'Protects against 5 diseases',
-    },
-    'PCV1': {
-      'name': 'Pneumococcal 1',
-      'ageWeeks': 6,
-      'description': 'Protects against pneumonia',
-    },
-    'ROTA1': {
-      'name': 'Rotavirus 1',
-      'ageWeeks': 6,
-      'description': 'Protects against diarrhea',
-    },
-    'OPV2': {
-      'name': 'Oral Polio Vaccine 2',
-      'ageWeeks': 10,
-      'description': 'Third dose of polio vaccine',
-    },
-    'DTP-HepB-Hib2': {
-      'name': 'Pentavalent 2',
-      'ageWeeks': 10,
-      'description': 'Second pentavalent dose',
-    },
-    'PCV2': {
-      'name': 'Pneumococcal 2',
-      'ageWeeks': 10,
-      'description': 'Second pneumococcal dose',
-    },
-    'ROTA2': {
-      'name': 'Rotavirus 2',
-      'ageWeeks': 10,
-      'description': 'Second rotavirus dose',
-    },
-    'OPV3': {
-      'name': 'Oral Polio Vaccine 3',
-      'ageWeeks': 14,
-      'description': 'Fourth dose of polio vaccine',
-    },
-    'DTP-HepB-Hib3': {
-      'name': 'Pentavalent 3',
-      'ageWeeks': 14,
-      'description': 'Third pentavalent dose',
-    },
-    'PCV3': {
-      'name': 'Pneumococcal 3',
-      'ageWeeks': 14,
-      'description': 'Third pneumococcal dose',
-    },
-    'IPV': {
-      'name': 'Inactivated Polio Vaccine',
-      'ageWeeks': 14,
-      'description': 'Injectable polio vaccine',
-    },
-    'MR1': {
-      'name': 'Measles-Rubella 1',
-      'ageWeeks': 39,
-      'description': 'First measles-rubella dose at 9 months',
-    },
-    'YF': {
-      'name': 'Yellow Fever',
-      'ageWeeks': 39,
-      'description': 'Yellow fever vaccine at 9 months',
-    },
-    'MR2': {
-      'name': 'Measles-Rubella 2',
-      'ageWeeks': 78,
-      'description': 'Second measles-rubella dose at 18 months',
-    },
+    'BCG': {'name': 'BCG Vaccine', 'ageWeeks': 0, 'description': 'Protects against tuberculosis'},
+    'OPV0': {'name': 'Oral Polio Vaccine 0', 'ageWeeks': 0, 'description': 'First dose of polio vaccine'},
+    'OPV1': {'name': 'Oral Polio Vaccine 1', 'ageWeeks': 6, 'description': 'Second dose of polio vaccine'},
+    'DTP-HepB-Hib1': {'name': 'Pentavalent 1', 'ageWeeks': 6, 'description': 'Protects against 5 diseases'},
+    'PCV1': {'name': 'Pneumococcal 1', 'ageWeeks': 6, 'description': 'Protects against pneumonia'},
+    'ROTA1': {'name': 'Rotavirus 1', 'ageWeeks': 6, 'description': 'Protects against diarrhea'},
+    'OPV2': {'name': 'Oral Polio Vaccine 2', 'ageWeeks': 10, 'description': 'Third dose of polio vaccine'},
+    'DTP-HepB-Hib2': {'name': 'Pentavalent 2', 'ageWeeks': 10, 'description': 'Second pentavalent dose'},
+    'PCV2': {'name': 'Pneumococcal 2', 'ageWeeks': 10, 'description': 'Second pneumococcal dose'},
+    'ROTA2': {'name': 'Rotavirus 2', 'ageWeeks': 10, 'description': 'Second rotavirus dose'},
+    'OPV3': {'name': 'Oral Polio Vaccine 3', 'ageWeeks': 14, 'description': 'Fourth dose of polio vaccine'},
+    'DTP-HepB-Hib3': {'name': 'Pentavalent 3', 'ageWeeks': 14, 'description': 'Third pentavalent dose'},
+    'PCV3': {'name': 'Pneumococcal 3', 'ageWeeks': 14, 'description': 'Third pneumococcal dose'},
+    'IPV': {'name': 'Inactivated Polio Vaccine', 'ageWeeks': 14, 'description': 'Injectable polio vaccine'},
+    'MR1': {'name': 'Measles-Rubella 1', 'ageWeeks': 39, 'description': 'First measles-rubella dose at 9 months'},
+    'YF': {'name': 'Yellow Fever', 'ageWeeks': 39, 'description': 'Yellow fever vaccine at 9 months'},
+    'MR2': {'name': 'Measles-Rubella 2', 'ageWeeks': 78, 'description': 'Second measles-rubella dose at 18 months'},
   };
 }
 
@@ -390,17 +332,9 @@ class StorageKeys {
 
 /// Validation Regex
 class ValidationPatterns {
-  static final RegExp email = RegExp(
-    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-  );
-  
-  static final RegExp kenyanPhone = RegExp(
-    r'^(\+254|254|0)(7|1)[0-9]{8}$',
-  );
-  
-  static final RegExp nationalId = RegExp(
-    r'^[0-9]{7,8}$',
-  );
+  static final RegExp email = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+  static final RegExp kenyanPhone = RegExp(r'^(\+254|254|0)(7|1)[0-9]{8}$');
+  static final RegExp nationalId = RegExp(r'^[0-9]{7,8}$');
 }
 
 /// Error Messages
@@ -423,22 +357,22 @@ class SuccessMessages {
 // ==== VisitType Extensions ====
 extension VisitTypeX on VisitType {
   IconData get icon => switch (this) {
-        VisitType.anc => Icons.pregnant_woman,
-        VisitType.delivery => Icons.local_hospital,
-        VisitType.postnatal => Icons.child_care,
-        VisitType.immunization => Icons.vaccines,
-        VisitType.growthMonitoring => Icons.show_chart,
-        VisitType.general => Icons.healing,
-      };
+    VisitType.anc => Icons.pregnant_woman,
+    VisitType.delivery => Icons.local_hospital,
+    VisitType.postnatal => Icons.child_care,
+    VisitType.immunization => Icons.vaccines,
+    VisitType.growth_monitoring => Icons.show_chart,
+    VisitType.general => Icons.healing,
+  };
 
   Color get color => switch (this) {
-        VisitType.anc => AppColors.primaryPink,
-        VisitType.delivery => AppColors.error,
-        VisitType.postnatal => AppColors.accentBlue,
-        VisitType.immunization => AppColors.accentGreen,
-        VisitType.growthMonitoring => AppColors.accentOrange,
-        VisitType.general => AppColors.textLight,
-      };
+    VisitType.anc => AppColors.primaryPink,
+    VisitType.delivery => AppColors.error,
+    VisitType.postnatal => AppColors.accentBlue,
+    VisitType.immunization => AppColors.accentGreen,
+    VisitType.growth_monitoring => AppColors.accentOrange,
+    VisitType.general => AppColors.textLight,
+  };
 }
 
 // ==== DateTime Extensions ====

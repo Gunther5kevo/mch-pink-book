@@ -4,22 +4,24 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import '../../core/network/supabase_client.dart';
+import '../../domain/entities/patient_entity.dart' as domain;
 
 part 'patients_provider.g.dart';
 
 /// ---------------------------------------------------------------------------
-/// 1. Patient model – mothers + children
+/// 1. Tiny DTO – only lives here, never used outside this file
 /// ---------------------------------------------------------------------------
-class Patient {
+class _PatientDto {
   final String id;
   final String name;
   final String? phone;
   final String? nationalId;
   final String type;      // 'mother' or 'child'
-  final String? motherId; // only for children
+  final String? motherId;
 
-  const Patient({
+  const _PatientDto({
     required this.id,
     required this.name,
     this.phone,
@@ -28,10 +30,12 @@ class Patient {
     this.motherId,
   });
 
-  factory Patient.fromJson(Map<String, dynamic> json, {required String type}) {
-    return Patient(
+  // -----------------------------------------------------------------
+  // Convert raw JSON → DTO
+  // -----------------------------------------------------------------
+  factory _PatientDto.fromJson(Map<String, dynamic> json, {required String type}) {
+    return _PatientDto(
       id: json['id'] as String,
-      // Use 'name' for children, 'full_name' for mothers
       name: type == 'child' ? json['name'] as String : json['full_name'] as String,
       phone: json['phone_e164'] as String?,
       nationalId: json['national_id'] as String?,
@@ -40,25 +44,30 @@ class Patient {
     );
   }
 
-  bool matches(String query) {
-    final q = query.toLowerCase();
-    return name.toLowerCase().contains(q) ||
-        id.toLowerCase().contains(q) ||
-        phone?.contains(q) == true ||
-        nationalId?.contains(q) == true;
-  }
+  // -----------------------------------------------------------------
+  // DTO → clean domain entity
+  // -----------------------------------------------------------------
+  domain.Patient toDomain() => domain.Patient(
+        id: id,
+        name: name,
+        type: type,
+        phone: phone,
+        nationalId: nationalId,
+        motherId: motherId,
+      );
 }
 
 /// ---------------------------------------------------------------------------
-/// 2. Unified Patients provider – mothers + children
+/// 2. Unified Patients provider – returns **domain.Patient**
 /// ---------------------------------------------------------------------------
 @riverpod
 class Patients extends _$Patients {
   @override
-  Future<List<Patient>> build() async {
+  Future<List<domain.Patient>> build() async {
     final supabase = SupabaseClientManager.client;
 
-    debugPrint('PatientsProvider: client ready, user: ${supabase.auth.currentUser?.id ?? 'anon'}');
+    debugPrint(
+        'PatientsProvider: client ready, user: ${supabase.auth.currentUser?.id ?? 'anon'}');
 
     try {
       // ------------------- Mothers -------------------
@@ -69,20 +78,20 @@ class Patients extends _$Patients {
           .eq('is_active', true)
           .order('full_name', ascending: true);
 
-      final List mothersJson = mothersResponse as List? ?? [];
-      final mothers = mothersJson
-          .map((json) => Patient.fromJson(json, type: 'mother'))
+      final mothers = (mothersResponse as List)
+          .map((json) => _PatientDto.fromJson(json, type: 'mother'))
+          .map((dto) => dto.toDomain())
           .toList();
 
       // ------------------- Children ------------------
       final childrenResponse = await supabase
           .from('children')
-          .select('id, name, mother_id') // ← CHANGED: 'full_name' → 'name'
+          .select('id, name, mother_id')
           .order('name', ascending: true);
 
-      final List childrenJson = childrenResponse as List? ?? [];
-      final children = childrenJson
-          .map((json) => Patient.fromJson(json, type: 'child'))
+      final children = (childrenResponse as List)
+          .map((json) => _PatientDto.fromJson(json, type: 'child'))
+          .map((dto) => dto.toDomain())
           .toList();
 
       debugPrint('PatientsProvider: ${mothers.length} mothers, ${children.length} children');
@@ -103,17 +112,17 @@ class Patients extends _$Patients {
 }
 
 /// ---------------------------------------------------------------------------
-/// 3. Search providers
+/// 3. Search providers – work with **domain.Patient**
 /// ---------------------------------------------------------------------------
 final patientSearchProvider = StateProvider<String>((ref) => '');
 
-final filteredPatientsProvider = Provider<List<Patient>>((ref) {
+final filteredPatientsProvider = Provider<List<domain.Patient>>((ref) {
   final query = ref.watch(patientSearchProvider).trim();
   final asyncPatients = ref.watch(patientsProvider);
 
   final patients = asyncPatients.maybeWhen(
     data: (list) => list,
-    orElse: () => <Patient>[],
+    orElse: () => <domain.Patient>[],
   );
 
   if (query.isEmpty) return patients;

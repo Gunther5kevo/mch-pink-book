@@ -3,6 +3,8 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:collection/collection.dart'; // Required for ListEquality
+
 import '../../domain/entities/child_entity.dart';
 import '../../data/services/child_service.dart';
 
@@ -40,9 +42,25 @@ class ChildrenState {
       error: error,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ChildrenState &&
+        const ListEquality().equals(other.children, children) &&
+        other.isLoading == isLoading &&
+        other.error == error;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        const ListEquality().hash(children),
+        isLoading,
+        error,
+      );
 }
 
-// Children list provider (for a specific mother)
+// === MOTHER-SPECIFIC NOTIFIER ===
 class ChildrenNotifier extends StateNotifier<ChildrenState> {
   final ChildService _childService;
   final String motherId;
@@ -59,19 +77,12 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
       final children = await _childService.getMotherChildren(motherId);
       state = state.copyWith(children: children, isLoading: false);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
-  /// Refresh children list
-  Future<void> refreshChildren() async {
-    await loadChildren();
-  }
+  Future<void> refreshChildren() => loadChildren();
 
-  /// Add a new child
   Future<bool> addChild({
     required String name,
     required DateTime dateOfBirth,
@@ -103,9 +114,7 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
         photoUrl: photoUrl,
       );
 
-      state = state.copyWith(
-        children: [...state.children, newChild],
-      );
+      state = state.copyWith(children: [...state.children, newChild]);
       return true;
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -113,7 +122,6 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
     }
   }
 
-  /// Update child information
   Future<bool> updateChild({
     required String childId,
     String? name,
@@ -144,10 +152,7 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
         photoUrl: photoUrl,
       );
 
-      final updatedList = state.children.map((child) {
-        return child.id == childId ? updatedChild : child;
-      }).toList();
-
+      final updatedList = state.children.map((c) => c.id == childId ? updatedChild : c).toList();
       state = state.copyWith(children: updatedList);
       return true;
     } catch (e) {
@@ -156,15 +161,10 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
     }
   }
 
-  /// Delete a child
   Future<bool> deleteChild(String childId) async {
     try {
       await _childService.deleteChild(childId);
-      
-      final updatedList = state.children
-          .where((child) => child.id != childId)
-          .toList();
-      
+      final updatedList = state.children.where((c) => c.id != childId).toList();
       state = state.copyWith(children: updatedList);
       return true;
     } catch (e) {
@@ -173,76 +173,50 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
     }
   }
 
-  /// Filter children by age category
   Future<void> filterByAgeCategory(String category) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final children = await _childService.getChildrenByAgeCategory(
-        motherId,
-        category,
-      );
+      final children = await _childService.getChildrenByAgeCategory(motherId, category);
       state = state.copyWith(children: children, isLoading: false);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
-  /// Search children by name
   Future<void> searchChildren(String query) async {
     if (query.isEmpty) {
       await loadChildren();
       return;
     }
-
     state = state.copyWith(isLoading: true, error: null);
     try {
       final children = await _childService.searchChildren(motherId, query);
       state = state.copyWith(children: children, isLoading: false);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
-  /// Upload child photo
-/// Upload child photo
-Future<String?> uploadChildPhoto(
-  String childId,
-  List<int> fileBytes,
-  String fileExtension,
-) async {
-  try {
-    final photoUrl = await _childService.uploadChildPhoto(
-      childId,
-      fileBytes,
-      fileExtension,
-    );
-    
-    // Update the child in the list
-    final updatedList = state.children.map((child) {
-      if (child.id == childId) {
-        return child.copyWith(photoUrl: photoUrl);
-      }
-      return child;
-    }).toList();
-    
-    state = state.copyWith(children: updatedList);
-    return photoUrl;
-  } catch (e) {
-    state = state.copyWith(error: e.toString());
-    return null;
+  Future<String?> uploadChildPhoto(
+    String childId,
+    List<int> fileBytes,
+    String fileExtension,
+  ) async {
+    try {
+      final photoUrl = await _childService.uploadChildPhoto(childId, fileBytes, fileExtension);
+      final updatedList = state.children.map((c) {
+        return c.id == childId ? c.copyWith(photoUrl: photoUrl) : c;
+      }).toList();
+      state = state.copyWith(children: updatedList);
+      return photoUrl;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return null;
+    }
   }
-}
 
-  /// Get filtered children (local filtering)
   List<ChildEntity> getFilteredChildren(String filter) {
     if (filter == 'All') return state.children;
-    
     return state.children.where((child) {
       final months = child.ageInMonths;
       switch (filter.toLowerCase()) {
@@ -259,7 +233,30 @@ Future<String?> uploadChildPhoto(
   }
 }
 
-// Provider for children list
+// === ALL CHILDREN NOTIFIER (FOR NURSE) ===
+class AllChildrenNotifier extends StateNotifier<ChildrenState> {
+  final ChildService _childService;
+
+  AllChildrenNotifier(this._childService) : super(const ChildrenState()) {
+    loadAllChildren();
+  }
+
+  Future<void> loadAllChildren() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final children = await _childService.getAllChildren();
+      state = state.copyWith(children: children, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<void> refresh() => loadAllChildren();
+}
+
+// === PROVIDERS ===
+
+// For mother-specific children
 final childrenProvider = StateNotifierProvider.family<ChildrenNotifier, ChildrenState, String>(
   (ref, motherId) {
     final childService = ref.watch(childServiceProvider);
@@ -267,13 +264,19 @@ final childrenProvider = StateNotifierProvider.family<ChildrenNotifier, Children
   },
 );
 
-// Single child provider
+// For ALL children (nurse/clinic view)
+final allChildrenProvider = StateNotifierProvider<AllChildrenNotifier, ChildrenState>((ref) {
+  final childService = ref.watch(childServiceProvider);
+  return AllChildrenNotifier(childService);
+});
+
+// Single child by ID
 final childProvider = FutureProvider.family<ChildEntity?, String>((ref, childId) async {
   final childService = ref.watch(childServiceProvider);
   return await childService.getChildById(childId);
 });
 
-// Child by QR code provider
+// Child by QR code
 final childByQrProvider = FutureProvider.family<ChildEntity?, String>((ref, qrCode) async {
   final childService = ref.watch(childServiceProvider);
   return await childService.getChildByQrCode(qrCode);
