@@ -29,16 +29,32 @@ class _SystemHash {
   }
 }
 
-/// See also [immunizations].
+/// ═══════════════════════════════════════════════════════════════════════
+/// EXISTING: Per-child immunization tracking
+/// ═══════════════════════════════════════════════════════════════════════
+///
+/// Copied from [immunizations].
 @ProviderFor(immunizations)
 const immunizationsProvider = ImmunizationsFamily();
 
-/// See also [immunizations].
+/// ═══════════════════════════════════════════════════════════════════════
+/// EXISTING: Per-child immunization tracking
+/// ═══════════════════════════════════════════════════════════════════════
+///
+/// Copied from [immunizations].
 class ImmunizationsFamily extends Family<AsyncValue<List<ImmunizationEntity>>> {
-  /// See also [immunizations].
+  /// ═══════════════════════════════════════════════════════════════════════
+  /// EXISTING: Per-child immunization tracking
+  /// ═══════════════════════════════════════════════════════════════════════
+  ///
+  /// Copied from [immunizations].
   const ImmunizationsFamily();
 
-  /// See also [immunizations].
+  /// ═══════════════════════════════════════════════════════════════════════
+  /// EXISTING: Per-child immunization tracking
+  /// ═══════════════════════════════════════════════════════════════════════
+  ///
+  /// Copied from [immunizations].
   ImmunizationsProvider call(
     String childId,
   ) {
@@ -71,10 +87,18 @@ class ImmunizationsFamily extends Family<AsyncValue<List<ImmunizationEntity>>> {
   String? get name => r'immunizationsProvider';
 }
 
-/// See also [immunizations].
+/// ═══════════════════════════════════════════════════════════════════════
+/// EXISTING: Per-child immunization tracking
+/// ═══════════════════════════════════════════════════════════════════════
+///
+/// Copied from [immunizations].
 class ImmunizationsProvider
     extends AutoDisposeFutureProvider<List<ImmunizationEntity>> {
-  /// See also [immunizations].
+  /// ═══════════════════════════════════════════════════════════════════════
+  /// EXISTING: Per-child immunization tracking
+  /// ═══════════════════════════════════════════════════════════════════════
+  ///
+  /// Copied from [immunizations].
   ImmunizationsProvider(
     String childId,
   ) : this._internal(
@@ -159,8 +183,116 @@ class _ImmunizationsProviderElement
   String get childId => (origin as ImmunizationsProvider).childId;
 }
 
+String _$clinicChildrenImmunizationStatusHash() =>
+    r'9f31bb24ace367da8fc22bf16088340afdf51c2d';
+
+/// ═══════════════════════════════════════════════════════════════════════
+/// Provider: All children in clinic with immunization status
+/// ═══════════════════════════════════════════════════════════════════════
+///
+/// Copied from [clinicChildrenImmunizationStatus].
+@ProviderFor(clinicChildrenImmunizationStatus)
+final clinicChildrenImmunizationStatusProvider =
+    AutoDisposeFutureProvider<List<ChildImmunizationStatus>>.internal(
+  clinicChildrenImmunizationStatus,
+  name: r'clinicChildrenImmunizationStatusProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$clinicChildrenImmunizationStatusHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef ClinicChildrenImmunizationStatusRef
+    = AutoDisposeFutureProviderRef<List<ChildImmunizationStatus>>;
+String _$immunizationsDueSummaryHash() =>
+    r'bba7834f1b68b45bad8b66f125d2779964966b6e';
+
+/// ═══════════════════════════════════════════════════════════════════════
+/// Provider: Immunization summary for dashboard
+/// ═══════════════════════════════════════════════════════════════════════
+///
+/// Copied from [immunizationsDueSummary].
+@ProviderFor(immunizationsDueSummary)
+final immunizationsDueSummaryProvider =
+    AutoDisposeFutureProvider<ImmunizationsDueSummary>.internal(
+  immunizationsDueSummary,
+  name: r'immunizationsDueSummaryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$immunizationsDueSummaryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef ImmunizationsDueSummaryRef
+    = AutoDisposeFutureProviderRef<ImmunizationsDueSummary>;
+String _$immunizationsDueTodayHash() =>
+    r'f75ae8fafe7fa0e2dacd2bf2d687ce74f83227c0';
+
+/// ═══════════════════════════════════════════════════════════════════════
+/// Provider: Immunizations due TODAY (for top stats card)
+/// ═══════════════════════════════════════════════════════════════════════
+///
+/// Copied from [immunizationsDueToday].
+@ProviderFor(immunizationsDueToday)
+final immunizationsDueTodayProvider = AutoDisposeFutureProvider<int>.internal(
+  immunizationsDueToday,
+  name: r'immunizationsDueTodayProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$immunizationsDueTodayHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef ImmunizationsDueTodayRef = AutoDisposeFutureProviderRef<int>;
+String _$overdueImmunizationsHash() =>
+    r'3940900b18a67f8c27d5fd7f6b06aad28296018b';
+
+/// ═══════════════════════════════════════════════════════════════════════
+/// Provider: Children with overdue immunizations (for detailed list)
+/// ═══════════════════════════════════════════════════════════════════════
+///
+/// Copied from [overdueImmunizations].
+@ProviderFor(overdueImmunizations)
+final overdueImmunizationsProvider =
+    AutoDisposeFutureProvider<List<ChildImmunizationStatus>>.internal(
+  overdueImmunizations,
+  name: r'overdueImmunizationsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$overdueImmunizationsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef OverdueImmunizationsRef
+    = AutoDisposeFutureProviderRef<List<ChildImmunizationStatus>>;
+String _$immunizationsDueThisWeekHash() =>
+    r'5bb38bdbd269420f62a2d032c2d8c488eb2be860';
+
+/// ═══════════════════════════════════════════════════════════════════════
+/// Provider: Children with immunizations due this week (for detailed list)
+/// ═══════════════════════════════════════════════════════════════════════
+///
+/// Copied from [immunizationsDueThisWeek].
+@ProviderFor(immunizationsDueThisWeek)
+final immunizationsDueThisWeekProvider =
+    AutoDisposeFutureProvider<List<ChildImmunizationStatus>>.internal(
+  immunizationsDueThisWeek,
+  name: r'immunizationsDueThisWeekProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$immunizationsDueThisWeekHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef ImmunizationsDueThisWeekRef
+    = AutoDisposeFutureProviderRef<List<ChildImmunizationStatus>>;
 String _$immunizationNotifierHash() =>
-    r'd9659f6ee4434e211f345aa459bbdf96e9fd2fc1';
+    r'a40bef527ed4629b674282c5eef516dd7d990fb5';
 
 /// See also [ImmunizationNotifier].
 @ProviderFor(ImmunizationNotifier)

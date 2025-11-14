@@ -21,15 +21,16 @@ class AuthState with _$AuthState {
   const factory AuthState.otpSent(String phoneNumber) = OtpSent;
   const factory AuthState.signupInProgress() = SignupInProgress;
   const factory AuthState.emailVerificationPending() = EmailVerificationPending;
-  const factory AuthState.phoneVerificationPending(String phone) = PhoneVerificationPending;
-  
+  const factory AuthState.phoneVerificationPending(String phone) =
+      PhoneVerificationPending;
+
   // NEW: Add this state for healthcare providers waiting for manual verification
   const factory AuthState.pendingVerification({
     required String email,
     required UserRole role,
     required String message,
   }) = PendingVerification;
-  
+
   const factory AuthState.error(String message) = Error;
 }
 
@@ -39,13 +40,18 @@ final authNotifierProvider =
 });
 
 // Storage for pending signup data (waiting for email verification)
+
+/// Auth Notifier Updates - For normalized schema with clinics table
+/// Key changes: Use clinic_id instead of facility fields
+
+// 1. Update _PendingSignupData to store clinic_id
 class _PendingSignupData {
   final String fullName;
   final String email;
   final String? phoneE164;
   final UserRole role;
   final String? licenseNumber;
-  final String? facilityName;
+  final String? clinicId; // Changed from facility fields to clinic_id
   final bool isActive;
 
   _PendingSignupData({
@@ -54,7 +60,7 @@ class _PendingSignupData {
     this.phoneE164,
     required this.role,
     this.licenseNumber,
-    this.facilityName,
+    this.clinicId,
     this.isActive = true,
   });
 }
@@ -76,7 +82,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _initialize() async {
     _supabase.auth.onAuthStateChange.listen((data) {
       print('🔔 Auth state change: ${data.event}');
-      
+
       if (data.event == AuthChangeEvent.signedIn ||
           data.event == AuthChangeEvent.tokenRefreshed) {
         _handleAuthStateChange();
@@ -114,19 +120,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final currentUserId = _supabase.auth.currentUser?.id;
     final user = _supabase.auth.currentUser;
-    
+
     print('🔍 Handling auth state change for user: $currentUserId');
     print('   Email verified: ${user?.emailConfirmedAt != null}');
     print('   Has pending data: ${_pendingSignupData != null}');
     print('   Last processed: $_lastProcessedUserId');
-    
+
     // Check if we have pending signup data (after email verification)
     if (_pendingSignupData != null) {
       // If email is verified, complete the signup
       if (user?.emailConfirmedAt != null) {
         // Check if we already completed this signup
         final profileExists = await _checkProfileExists(currentUserId);
-        
+
         if (profileExists) {
           print('✅ Profile already created, loading it...');
           _pendingSignupData = null;
@@ -138,25 +144,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
         return;
       }
-      
+
       print('⚠️ Email not yet verified, waiting...');
       return;
     }
-    
+
     // No pending signup data - just load the profile
     await _loadUserProfile();
   }
 
   Future<bool> _checkProfileExists(String? userId) async {
     if (userId == null) return false;
-    
+
     try {
       final response = await _supabase
           .from('users')
           .select('id')
           .eq('id', userId)
           .maybeSingle();
-      
+
       return response != null;
     } catch (e) {
       print('❌ Error checking profile existence: $e');
@@ -203,14 +209,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
           .eq('id', userId)
           .maybeSingle()
           .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              print('⏱️ Profile loading timed out after 10 seconds');
-              throw TimeoutException('Profile loading timed out');
-            },
-          );
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print('⏱️ Profile loading timed out after 10 seconds');
+          throw TimeoutException('Profile loading timed out');
+        },
+      );
 
-      print('📦 Response received: ${response != null ? "Data found" : "No data"}');
+      print(
+          '📦 Response received: ${response != null ? "Data found" : "No data"}');
 
       if (response == null) {
         print('⚠️ No profile found in database');
@@ -224,7 +231,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
         // Check if we have pending signup data that should be completed
         if (_pendingSignupData != null && authUser.emailConfirmedAt != null) {
-          print('🔄 Found pending signup with verified email, completing now...');
+          print(
+              '🔄 Found pending signup with verified email, completing now...');
           await _completePendingSignup();
           return;
         }
@@ -236,19 +244,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       try {
         print('🔄 Parsing user entity...');
-        
+
         final user = UserEntity.fromJson(response);
-        print('✅ Profile loaded successfully for: ${user.fullName} (${user.role.name})');
+        print(
+            '✅ Profile loaded successfully for: ${user.fullName} (${user.role.name})');
         state = AuthState.authenticated(user);
       } catch (parseError, stackTrace) {
         print('❌ Error parsing user entity: $parseError');
         print('📋 Response data: $response');
         print('📚 Stack trace: $stackTrace');
-        state = AuthState.error('Failed to parse user profile: ${parseError.toString()}');
+        state = AuthState.error(
+            'Failed to parse user profile: ${parseError.toString()}');
       }
     } on TimeoutException catch (e) {
       print('❌ Timeout error: $e');
-      state = const AuthState.error('Loading profile timed out. Please check your connection and try again.');
+      state = const AuthState.error(
+          'Loading profile timed out. Please check your connection and try again.');
     } on PostgrestException catch (e) {
       print('❌ Postgrest error: ${e.message}');
       print('   Code: ${e.code}');
@@ -272,7 +283,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required UserRole role,
     String? phoneE164,
     String? licenseNumber,
-    String? facilityName,
+    String? clinicId, // Changed: now just pass the clinic_id
   }) async {
     if (_isProcessingSignup) {
       print('⚠️ Signup already in progress');
@@ -288,6 +299,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       print('📧 Starting email signup for: $email (role: ${role.name})');
+      print('🏥 Clinic ID: $clinicId');
 
       final authResponse = await _supabase.auth.signUp(
         email: email,
@@ -303,13 +315,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       print('✅ Auth user created: $userId');
       _lastProcessedUserId = userId;
 
-      // Determine if this is a healthcare provider
       final isProvider = role != UserRole.mother;
 
       if (authResponse.session != null) {
-        // Email verification is disabled - create profile immediately
         print('✅ Session exists, email verification disabled');
-        
+
         await Future.delayed(const Duration(milliseconds: 500));
 
         final currentUserId = _supabase.auth.currentUser?.id;
@@ -324,34 +334,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
           phoneE164: phoneE164,
           role: role,
           licenseNumber: licenseNumber,
-          facilityName: facilityName,
-          isActive: !isProvider, // Providers inactive until verified
+          clinicId: clinicId, // Pass clinic_id
+          isActive: !isProvider,
         );
 
-        // For providers, show pending verification state
         if (isProvider) {
-          print('🏥 Healthcare provider signup - setting pending verification state');
+          print(
+              '🏥 Healthcare provider signup - setting pending verification state');
           state = AuthState.pendingVerification(
             email: email,
             role: role,
-            message: 'Application submitted! We will verify your license within 24-48 hours.',
+            message:
+                'Application submitted! We will verify your license within 24-48 hours.',
           );
         } else {
-          // For mothers, load profile normally
           await _loadUserProfile();
         }
       } else {
-        // Email verification is required
         print('📧 Email verification required, storing signup data');
-        
+
         _pendingSignupData = _PendingSignupData(
           fullName: fullName,
           email: email,
           phoneE164: phoneE164,
           role: role,
           licenseNumber: licenseNumber,
-          facilityName: facilityName,
-          isActive: !isProvider, // Providers inactive until verified
+          clinicId: clinicId, // Store clinic_id
+          isActive: !isProvider,
         );
 
         state = const AuthState.emailVerificationPending();
@@ -376,13 +385,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // SINGLE DEFINITION - Keep this one
+// 3. Update _completePendingSignup
   Future<void> _completePendingSignup() async {
     if (_pendingSignupData == null) {
       print('⚠️ No pending signup data to complete');
       return;
     }
-    
+
     if (_isProcessingSignup) {
       print('⚠️ Already processing signup');
       return;
@@ -399,22 +408,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       print('📝 Completing pending signup for user: $userId');
-      
-      // Check if profile already exists (in case we're retrying)
+
       final profileExists = await _checkProfileExists(userId);
-      
+
       if (profileExists) {
         print('✅ Profile already exists, loading it...');
         final data = _pendingSignupData!;
         _pendingSignupData = null;
         _lastProcessedUserId = userId;
-        
-        // Check if it's a provider - if so, show pending verification
+
         if (data.role != UserRole.mother) {
           state = AuthState.pendingVerification(
             email: data.email,
             role: data.role,
-            message: 'Application submitted! We will verify your license within 24-48 hours.',
+            message:
+                'Application submitted! We will verify your license within 24-48 hours.',
           );
         } else {
           await _loadUserProfile();
@@ -426,7 +434,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final data = _pendingSignupData!;
       final isProvider = data.role != UserRole.mother;
-      
+
       await _createUserProfile(
         userId: userId,
         fullName: data.fullName,
@@ -434,23 +442,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
         phoneE164: data.phoneE164,
         role: data.role,
         licenseNumber: data.licenseNumber,
-        facilityName: data.facilityName,
-        isActive: !isProvider, // Providers inactive until verified
+        clinicId: data.clinicId, // Use clinic_id
+        isActive: !isProvider,
       );
 
       print('✅ Profile created successfully');
       _pendingSignupData = null;
-      
-      // For providers, show pending verification state
+
       if (isProvider) {
         print('🏥 Healthcare provider - setting pending verification state');
         state = AuthState.pendingVerification(
           email: data.email,
           role: data.role,
-          message: 'Application submitted! We will verify your license within 24-48 hours.',
+          message:
+              'Application submitted! We will verify your license within 24-48 hours.',
         );
       } else {
-        // For mothers, load profile normally
         await _loadUserProfile();
       }
     } catch (e) {
@@ -655,7 +662,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String fullName,
     required UserRole role,
     required String licenseNumber,
-    String? facilityName,
+    String? clinicId, // Changed from facility fields
   }) async {
     if (_isProcessingSignup) {
       print('⚠️ Signup already in progress');
@@ -672,6 +679,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (licenseNumber.trim().isEmpty) {
         throw Exception('License number is required');
+      }
+
+      if (clinicId == null || clinicId.isEmpty) {
+        throw Exception('Clinic selection is required');
       }
 
       final validatedPhone = _formatPhone(phoneE164);
@@ -697,8 +708,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         phoneE164: validatedPhone,
         role: role,
         licenseNumber: licenseNumber,
-        facilityName: facilityName,
-        isActive: false,
+        clinicId: clinicId, // Use clinic_id
+        isActive: false, // Providers need verification
       );
 
       await _loadUserProfile();
@@ -722,121 +733,123 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // Replace the _createUserProfile method in your auth_notifier.dart with this:
 
-Future<void> _createUserProfile({
-  required String userId,
-  required String fullName,
-  required UserRole role,
-  String? email,
-  String? phoneE164,
-  String? licenseNumber,
-  String? facilityName,
-  bool isActive = true,
-}) async {
-  try {
-    if ((phoneE164 == null || phoneE164.isEmpty) &&
-        (email == null || email.isEmpty)) {
-      throw Exception('Either phone number or email is required');
-    }
+  Future<void> _createUserProfile({
+    required String userId,
+    required String fullName,
+    required UserRole role,
+    String? email,
+    String? phoneE164,
+    String? licenseNumber,
+    String? clinicId, // Single clinic_id reference
+    bool isActive = true,
+  }) async {
+    try {
+      if ((phoneE164 == null || phoneE164.isEmpty) &&
+          (email == null || email.isEmpty)) {
+        throw Exception('Either phone number or email is required');
+      }
 
-    final currentUserId = _supabase.auth.currentUser?.id;
-    print('📝 Creating profile for userId: $userId');
-    print('   Current auth.uid(): $currentUserId');
-    print('   Email: $email');
-    print('   Phone: $phoneE164');
-    print('   Role: ${role.name}');
-    print('   License: $licenseNumber');
-    print('   IsActive: $isActive');
+      final currentUserId = _supabase.auth.currentUser?.id;
+      print('📝 Creating profile for userId: $userId');
+      print('   Current auth.uid(): $currentUserId');
+      print('   Email: $email');
+      print('   Phone: $phoneE164');
+      print('   Role: ${role.name}');
+      print('   License: $licenseNumber');
+      print('   Clinic ID: $clinicId');
+      print('   IsActive: $isActive');
 
-    if (currentUserId != userId) {
+      if (currentUserId != userId) {
+        throw Exception(
+            'User ID mismatch: auth.uid() = $currentUserId, but trying to create profile for $userId');
+      }
+
+      final existing = await _supabase
+          .from('users')
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (existing != null) {
+        print('✅ Profile already exists for user $userId, skipping creation');
+        return;
+      }
+
+      final metadata = <String, dynamic>{};
+      if (!isActive) {
+        metadata['verification_status'] = 'pending';
+      }
+
+      // Build insert data
+      final insertData = {
+        'id': userId,
+        'full_name': fullName,
+        'role': role.name,
+        'language_pref': 'en',
+        'consent_given': true,
+        'consent_date': DateTime.now().toIso8601String(),
+        'is_active': isActive,
+        'metadata': metadata,
+      };
+
+      // Add optional fields
+      if (email != null && email.isNotEmpty) {
+        insertData['email'] = email;
+      }
+      if (phoneE164 != null && phoneE164.isNotEmpty) {
+        insertData['phone_e164'] = phoneE164;
+      }
+      if (licenseNumber != null && licenseNumber.isNotEmpty) {
+        insertData['license_number'] = licenseNumber;
+      }
+
+      // Add clinic_id - this is the key field for the normalized schema
+      if (clinicId != null && clinicId.isNotEmpty) {
+        insertData['clinic_id'] = clinicId;
+      }
+
+      print('📤 Inserting profile data with clinic_id: $clinicId');
+
+      final insertResponse =
+          await _supabase.from('users').insert(insertData).select().single();
+
+      print('✅ Profile created successfully!');
+      print('📥 Created profile data: $insertResponse');
+    } on PostgrestException catch (e) {
+      print('=== PostgrestException ===');
+      print('Message: ${e.message}');
+      print('Details: ${e.details}');
+      print('Hint: ${e.hint}');
+      print('Code: ${e.code}');
+
+      if (e.code == '23505') {
+        print('✅ Profile already exists (duplicate key), continuing...');
+        return;
+      }
+
+      if (e.code == '23503') {
+        // Foreign key violation - clinic_id doesn't exist
+        throw Exception(
+            'Invalid clinic_id: The selected facility was not found in the database. '
+            'Please try selecting the facility again.');
+      }
+
+      if (e.message.contains('row-level security') ||
+          e.message.contains('policy') ||
+          e.code == '42501') {
+        throw Exception('Permission denied: Unable to create profile. '
+            'Please check RLS policies on users table. '
+            'Current user: ${_supabase.auth.currentUser?.id}');
+      }
+
       throw Exception(
-          'User ID mismatch: auth.uid() = $currentUserId, but trying to create profile for $userId');
+          'Database error creating profile: ${e.message} (Code: ${e.code})');
+    } catch (e, stackTrace) {
+      print('❌ Unexpected error creating profile: $e');
+      print('📚 Stack trace: $stackTrace');
+      rethrow;
     }
-
-    // Check if profile already exists
-    final existing = await _supabase
-        .from('users')
-        .select('id')
-        .eq('id', userId)
-        .maybeSingle();
-
-    if (existing != null) {
-      print('✅ Profile already exists for user $userId, skipping creation');
-      return;
-    }
-
-    final metadata = <String, dynamic>{};
-    if (!isActive) {
-      metadata['verification_status'] = 'pending';
-    }
-
-    // Build the insert data
-    final insertData = {
-      'id': userId,
-      'full_name': fullName,
-      'role': role.name,
-      'language_pref': 'en',
-      'consent_given': true,
-      'consent_date': DateTime.now().toIso8601String(),
-      'is_active': isActive,
-      'metadata': metadata,
-    };
-
-    // Add optional fields only if they have values
-    if (email != null && email.isNotEmpty) {
-      insertData['email'] = email;
-    }
-    if (phoneE164 != null && phoneE164.isNotEmpty) {
-      insertData['phone_e164'] = phoneE164;
-    }
-    if (licenseNumber != null && licenseNumber.isNotEmpty) {
-      insertData['license_number'] = licenseNumber;
-    }
-    if (facilityName != null && facilityName.isNotEmpty) {
-      insertData['facility_name'] = facilityName;
-    }
-
-    print('📤 Inserting profile data: $insertData');
-
-    // Insert the profile
-    final insertResponse = await _supabase
-        .from('users')
-        .insert(insertData)
-        .select()
-        .single();
-
-    print('✅ Profile created successfully!');
-    print('📥 Created profile data: $insertResponse');
-
-  } on PostgrestException catch (e) {
-    print('=== PostgrestException ===');
-    print('Message: ${e.message}');
-    print('Details: ${e.details}');
-    print('Hint: ${e.hint}');
-    print('Code: ${e.code}');
-
-    if (e.code == '23505') {
-      print('✅ Profile already exists (duplicate key), continuing...');
-      return;
-    }
-
-    if (e.message.contains('row-level security') ||
-        e.message.contains('policy') ||
-        e.code == '42501') {
-      throw Exception(
-        'Permission denied: Unable to create profile. '
-        'Please check RLS policies on users table. '
-        'Current user: ${_supabase.auth.currentUser?.id}'
-      );
-    }
-
-    // Re-throw with more context
-    throw Exception('Database error creating profile: ${e.message} (Code: ${e.code})');
-  } catch (e, stackTrace) {
-    print('❌ Unexpected error creating profile: $e');
-    print('📚 Stack trace: $stackTrace');
-    rethrow;
   }
-}
 
   Future<void> _checkPhoneNotExists(String phone) async {
     final existing = await _supabase

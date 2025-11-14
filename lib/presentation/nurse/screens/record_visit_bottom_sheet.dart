@@ -125,8 +125,9 @@ class _RecordVisitBottomSheetState extends ConsumerState<RecordVisitBottomSheet>
 
   // ────────────────────── Submit Logic ──────────────────────
     void _submit() async {
-    if (!_formKey.currentState!.validate() || _visitType == null || _isSubmitting)
+    if (!_formKey.currentState!.validate() || _visitType == null || _isSubmitting) {
       return;
+    }
 
     setState(() => _isSubmitting = true);
 
@@ -288,7 +289,7 @@ class _RecordVisitBottomSheetState extends ConsumerState<RecordVisitBottomSheet>
 
               // ── Visit Type ──
               DropdownButtonFormField<VisitType>(
-                value: _visitType,
+                initialValue: _visitType,
                 decoration: InputDecoration(
                   labelText: 'Visit Type',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

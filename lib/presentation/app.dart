@@ -46,7 +46,7 @@ class MCHPinkBookApp extends ConsumerWidget {
         AppRoutes.login: (context) => const LoginScreen(),
         AppRoutes.signup: (context) => const SignupScreen(),
         AppRoutes.healthcareProviderSignup: (context) =>
-            const HealthcareProviderSignupScreen(), // ADD THIS LINE
+            const HealthcareProviderSignupScreen(),
         AppRoutes.pendingVerification: (context) =>
             const PendingVerificationScreen(),
         AppRoutes.motherHome: (context) => const MotherHomeScreen(),
@@ -157,6 +157,7 @@ class AppNavigator extends ConsumerStatefulWidget {
 
 class _AppNavigatorState extends ConsumerState<AppNavigator> {
   bool _showSplash = true;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
@@ -180,6 +181,52 @@ class _AppNavigatorState extends ConsumerState<AppNavigator> {
 
     final authState = ref.watch(authNotifierProvider);
 
+    // Listen to auth state changes and navigate accordingly
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      // Only navigate if we haven't already navigated in this build cycle
+      if (!_hasNavigated) {
+        next.maybeWhen(
+          authenticated: (user) {
+            _hasNavigated = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                final route = _getRouteForRole(user.role);
+                print('🚀 Navigating authenticated user to: $route (${user.role.name})');
+                Navigator.of(context).pushReplacementNamed(route);
+                // Reset flag after navigation
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (mounted) {
+                    setState(() => _hasNavigated = false);
+                  }
+                });
+              }
+            });
+          },
+          pendingVerification: (email, role, message) {
+            _hasNavigated = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                print('🔒 Navigating to pending verification screen');
+                Navigator.of(context).pushReplacementNamed(AppRoutes.pendingVerification);
+                // Reset flag after navigation
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (mounted) {
+                    setState(() => _hasNavigated = false);
+                  }
+                });
+              }
+            });
+          },
+          orElse: () {
+            // Reset navigation flag for other states
+            if (_hasNavigated) {
+              setState(() => _hasNavigated = false);
+            }
+          },
+        );
+      }
+    });
+
     // Use AnimatedSwitcher for smooth transitions between screens
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 400),
@@ -199,10 +246,13 @@ class _AppNavigatorState extends ConsumerState<AppNavigator> {
     return authState.when(
       initial: () => const SplashScreen(),
       loading: () => const SplashScreen(),
+      
+      // When authenticated, show splash while navigation happens
       authenticated: (user) {
-        // Go directly to role-specific home screen
-        return _getHomeScreenForRole(user.role);
+        print('📱 Authenticated state for ${user.fullName} (${user.role.name})');
+        return const SplashScreen(key: ValueKey('authenticated-splash'));
       },
+      
       unauthenticated: () => const LoginScreen(),
 
       // Merged OTP/phone verification states - both show LoginScreen
@@ -214,7 +264,8 @@ class _AppNavigatorState extends ConsumerState<AppNavigator> {
 
       // Handle pending verification for healthcare providers
       pendingVerification: (email, role, message) {
-        return const PendingVerificationScreen();
+        print('⏳ Pending verification state for $email');
+        return const SplashScreen(key: ValueKey('pending-verification-splash'));
       },
 
       error: (message) {
@@ -237,14 +288,14 @@ class _AppNavigatorState extends ConsumerState<AppNavigator> {
     );
   }
 
-  Widget _getHomeScreenForRole(UserRole role) {
+  String _getRouteForRole(UserRole role) {
     switch (role) {
       case UserRole.mother:
-        return const MotherHomeScreen();
+        return AppRoutes.motherHome;
       case UserRole.nurse:
-        return const NurseHomeScreen();
+        return AppRoutes.nurseHome;
       case UserRole.admin:
-        return const AdminHomeScreen();
+        return AppRoutes.adminHome;
     }
   }
 }

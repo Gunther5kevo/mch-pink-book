@@ -2,9 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mch_pink_book/core/constants/app_constants.dart';
-
 import 'package:mch_pink_book/domain/entities/patient_entity.dart' as domain;
-
+import 'package:mch_pink_book/presentation/nurse/screens/add_child_screen.dart';
 import 'tabs/pregnancy_tab.dart';
 import 'tabs/children_tab.dart';
 import 'tabs/appointments_tab.dart';
@@ -27,6 +26,13 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen>
     super.initState();
     final isMother = widget.patient.type == 'mother';
     _tabController = TabController(length: isMother ? 3 : 1, vsync: this);
+
+    // Listen to tab changes → update FAB
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {}); // Rebuild to show correct FAB
+      }
+    });
   }
 
   @override
@@ -44,9 +50,22 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen>
     );
   }
 
+  void _navigateToAddChild() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddChildScreen(
+          motherId: widget.patient.id,
+          motherName: widget.patient.name,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMother = widget.patient.type == 'mother';
+    final currentTabIndex = _tabController.index;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -59,21 +78,10 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen>
             backgroundColor: Colors.transparent,
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding:
-                  const EdgeInsetsDirectional.only(start: 80, bottom: 16),
+              titlePadding: const EdgeInsetsDirectional.only(start: 80, bottom: 16),
               title: Text(
                 widget.patient.name,
-                style: AppTextStyles.h3.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  shadows: const [
-                    Shadow(
-                      color: Colors.black26,
-                      offset: Offset(0, 1),
-                      blurRadius: 2,
-                    )
-                  ],
-                ),
+                style: AppTextStyles.h3.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
               ),
               collapseMode: CollapseMode.parallax,
               background: _HeaderBackground(patient: widget.patient),
@@ -96,22 +104,36 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen>
                   controller: _tabController,
                   children: [
                     PregnancyTab(motherId: widget.patient.id),
-                    ChildrenTab(motherId: widget.patient.id),
+                    ChildrenTab(motherId: widget.patient.id, motherName: widget.patient.name),
                     AppointmentsTab(userId: widget.patient.id),
                   ],
                 )
               : AppointmentsTab(userId: widget.patient.id),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openRecordVisit,
-        backgroundColor: AppColors.accentGreen,
-        foregroundColor: Colors.white,
-        elevation: 6,
-        highlightElevation: 12,
-        icon: const Icon(AppIcons.noteAdd, size: 20),
-        label: Text('Record Visit', style: AppTextStyles.button),
+
+      // ———————— DYNAMIC FAB ————————
+      floatingActionButton: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: (isMother && currentTabIndex == 1)
+            ? FloatingActionButton.extended(
+                key: const ValueKey('add_child'),
+                onPressed: _navigateToAddChild,
+                backgroundColor: AppColors.primaryPink,
+                foregroundColor: Colors.white,
+                icon: const Icon(Icons.add),
+                label: const Text('Add Child'),
+              )
+            : FloatingActionButton.extended(
+                key: const ValueKey('record_visit'),
+                onPressed: _openRecordVisit,
+                backgroundColor: AppColors.accentGreen,
+                foregroundColor: Colors.white,
+                icon: const Icon(AppIcons.noteAdd, size: 20),
+                label: const Text('Record Visit'),
+              ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

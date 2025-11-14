@@ -249,7 +249,7 @@ class _CreateAppointmentScreenState
                       .copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<VisitType>(
-                value: _selectedType,
+                initialValue: _selectedType,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: AppColors.cardBackground,
@@ -341,7 +341,7 @@ class _CreateAppointmentScreenState
                       .copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<int>(
-                value: _durationMinutes,
+                initialValue: _durationMinutes,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: AppColors.cardBackground,

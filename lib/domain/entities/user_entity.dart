@@ -5,6 +5,7 @@ library;
 
 import 'package:equatable/equatable.dart';
 import '../../core/constants/app_constants.dart';
+import 'clinic_entity.dart'; // Import clinic entity
 
 class UserEntity extends Equatable {
   final String id;
@@ -14,8 +15,9 @@ class UserEntity extends Equatable {
   final String? nationalId;
   final UserRole role;
   final String? clinicId;
+  final ClinicEntity? clinic; // NEW: Full clinic object from join
   final String? licenseNumber;
-  final String? facilityName;
+  final String? facilityName; // LEGACY: Keep for backward compatibility
   final LanguageCode languagePref;
   final String? emergencyContact;
   final String? emergencyName;
@@ -31,7 +33,7 @@ class UserEntity extends Equatable {
   final DateTime createdAt;
   final DateTime updatedAt;
   
-  // NEW: Profile setup fields
+  // Profile setup fields
   final bool hasCompletedSetup;
   final String? preferredClinic;
   final DateTime? lastVisitDate;
@@ -44,6 +46,7 @@ class UserEntity extends Equatable {
     this.nationalId,
     required this.role,
     this.clinicId,
+    this.clinic, // NEW
     this.licenseNumber,
     this.facilityName,
     required this.languagePref,
@@ -78,6 +81,10 @@ class UserEntity extends Equatable {
         orElse: () => UserRole.mother,
       ),
       clinicId: json['clinic_id'] as String?,
+      // NEW: Parse clinic from joined data
+      clinic: json['clinic'] != null
+          ? ClinicEntity.fromJson(json['clinic'] as Map<String, dynamic>)
+          : null,
       licenseNumber: json['license_number'] as String?,
       facilityName: json['facility_name'] as String?,
       languagePref: LanguageCode.values.firstWhere(
@@ -103,7 +110,6 @@ class UserEntity extends Equatable {
           : {},
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
-      // NEW fields
       hasCompletedSetup: json['has_completed_setup'] as bool? ?? false,
       preferredClinic: json['preferred_clinic'] as String?,
       lastVisitDate: json['last_visit_date'] != null
@@ -122,6 +128,7 @@ class UserEntity extends Equatable {
       'national_id': nationalId,
       'role': role.name,
       'clinic_id': clinicId,
+      if (clinic != null) 'clinic': clinic!.toJson(),
       'license_number': licenseNumber,
       'facility_name': facilityName,
       'language_pref': languagePref.name,
@@ -138,7 +145,6 @@ class UserEntity extends Equatable {
       'metadata': metadata,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
-      // NEW fields
       'has_completed_setup': hasCompletedSetup,
       'preferred_clinic': preferredClinic,
       'last_visit_date': lastVisitDate?.toIso8601String(),
@@ -169,6 +175,15 @@ class UserEntity extends Equatable {
 
   /// Get primary contact method
   String? get primaryContact => email ?? phoneE164;
+
+  /// NEW: Check if user has clinic assigned
+  bool get hasClinicAssigned => clinicId != null && clinic != null;
+
+  /// NEW: Get facility name (prefer clinic object, fallback to legacy field)
+  String? get effectiveFacilityName => clinic?.name ?? facilityName;
+
+  /// NEW: Get MFL code if available
+  String? get mflCode => clinic?.mflCode;
 
   /// Check if user profile is complete
   bool get isProfileComplete {
@@ -225,6 +240,7 @@ class UserEntity extends Equatable {
     String? nationalId,
     UserRole? role,
     String? clinicId,
+    ClinicEntity? clinic,
     String? licenseNumber,
     String? facilityName,
     LanguageCode? languagePref,
@@ -253,6 +269,7 @@ class UserEntity extends Equatable {
       nationalId: nationalId ?? this.nationalId,
       role: role ?? this.role,
       clinicId: clinicId ?? this.clinicId,
+      clinic: clinic ?? this.clinic,
       licenseNumber: licenseNumber ?? this.licenseNumber,
       facilityName: facilityName ?? this.facilityName,
       languagePref: languagePref ?? this.languagePref,
@@ -284,6 +301,7 @@ class UserEntity extends Equatable {
         nationalId,
         role,
         clinicId,
+        clinic,
         licenseNumber,
         facilityName,
         languagePref,
@@ -309,6 +327,6 @@ class UserEntity extends Equatable {
 
   @override
   String toString() {
-    return 'UserEntity(id: $id, name: $fullName, role: $role, email: $email, phone: $phoneE164, setupComplete: $hasCompletedSetup)';
+    return 'UserEntity(id: $id, name: $fullName, role: $role, email: $email, phone: $phoneE164, clinic: ${clinic?.name ?? "N/A"}, setupComplete: $hasCompletedSetup)';
   }
 }

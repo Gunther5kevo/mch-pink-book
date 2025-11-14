@@ -40,7 +40,7 @@ class PregnancyTab extends ConsumerWidget {
 /// Loading shimmer while fetching data
 /// ---------------------------------------------------------------------------
 class _PregnancyLoading extends StatelessWidget {
-  const _PregnancyLoading({super.key}); // ← Removed `const` from constructor
+  const _PregnancyLoading(); // ← Removed `const` from constructor
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +67,7 @@ class _PregnancyLoading extends StatelessWidget {
 /// ---------------------------------------------------------------------------
 class _EmptyPregnancyState extends StatelessWidget {
   final String motherId;
-  const _EmptyPregnancyState({super.key, required this.motherId});
+  const _EmptyPregnancyState({required this.motherId});
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +109,7 @@ class _EmptyPregnancyState extends StatelessWidget {
 /// ---------------------------------------------------------------------------
 class _PregnancyDetailCard extends StatelessWidget {
   final PregnancyEntity pregnancy;
-  const _PregnancyDetailCard({super.key, required this.pregnancy});
+  const _PregnancyDetailCard({required this.pregnancy});
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +200,7 @@ class _PregnancyDetailCard extends StatelessWidget {
 class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
-  const _DetailRow(this.label, this.value, {super.key});
+  const _DetailRow(this.label, this.value);
 
   @override
   Widget build(BuildContext context) {

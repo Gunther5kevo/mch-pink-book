@@ -78,17 +78,33 @@ class PregnancyEntity extends Equatable {
   // ───────────────────────────────────────────────────────────────────────
   // CALCULATED VALUES
   // ───────────────────────────────────────────────────────────────────────
-  int get gestationalAgeWeeks {
+  
+  /// Total gestational age in days from LMP to now (or actual delivery)
+  int get gestationDays {
     if (lmp == null) return 0;
-    final now = actualDelivery ?? DateTime.now();
-    final days = now.difference(lmp!).inDays;
-    return (days / 7).floor();
+    final referenceDate = actualDelivery ?? DateTime.now();
+    return referenceDate.difference(lmp!).inDays;
   }
 
+  /// Gestational age in complete weeks
+  int get gestationWeeks {
+    return (gestationDays / 7).floor();
+  }
+
+  /// Legacy getter for backward compatibility
+  int get gestationalAgeWeeks => gestationWeeks;
+
+  /// Calculate gestational age at a specific date
   int gestationalAgeAt(DateTime date) {
     if (lmp == null) return 0;
     final days = date.difference(lmp!).inDays;
     return (days / 7).floor();
+  }
+
+  /// Calculate gestational days at a specific date
+  int gestationalDaysAt(DateTime date) {
+    if (lmp == null) return 0;
+    return date.difference(lmp!).inDays;
   }
 
   bool get isHighRisk => riskFlags.isNotEmpty;
@@ -98,7 +114,7 @@ class PregnancyEntity extends Equatable {
   bool get isCompleted => outcome != null && outcome != 'ongoing';
 
   int get trimester {
-    final weeks = gestationalAgeWeeks;
+    final weeks = gestationWeeks;
     if (weeks <= 13) return 1;
     if (weeks <= 26) return 2;
     return 3;
@@ -117,7 +133,18 @@ class PregnancyEntity extends Equatable {
   String get statusText {
     if (!isOngoing) return outcome ?? 'Completed';
     if (isOverdue) return 'Overdue';
-    return '$gestationalAgeWeeks weeks';
+    return '$gestationWeeks weeks';
+  }
+
+  /// Formatted gestational age string (e.g., "32 weeks 4 days")
+  String get gestationalAgeFormatted {
+    if (lmp == null) return 'Unknown';
+    final weeks = gestationWeeks;
+    final days = gestationDays % 7;
+    if (days > 0) {
+      return '$weeks weeks $days ${days == 1 ? "day" : "days"}';
+    }
+    return '$weeks weeks';
   }
 
   // ───────────────────────────────────────────────────────────────────────

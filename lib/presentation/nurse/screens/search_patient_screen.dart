@@ -7,7 +7,10 @@ import '../../providers/patients_provider.dart';
 import 'patient_profile_screen.dart';
 
 class SearchPatientScreen extends ConsumerStatefulWidget {
-  const SearchPatientScreen({super.key});
+  /// Optional initial search query (e.g. when deep-linking or pre-searching)
+  final String? initialQuery;
+
+  const SearchPatientScreen({super.key, this.initialQuery});
 
   @override
   ConsumerState<SearchPatientScreen> createState() => _SearchPatientScreenState();
@@ -25,15 +28,44 @@ class _SearchPatientScreenState extends ConsumerState<SearchPatientScreen>
     super.initState();
 
     _tabController = TabController(length: 3, vsync: this);
-    _searchController.clear();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Set initial query if provided
+    final query = widget.initialQuery?.trim() ?? '';
+    if (query.isNotEmpty) {
+      _searchController.text = query;
+      // Immediately trigger search (debounced)
+      _triggerSearch(query);
+    } else {
+      _searchController.clear();
       ref.read(patientSearchProvider.notifier).state = '';
-    });
+    }
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) _focusNode.requestFocus();
+    // Focus the field after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
     });
+  }
+
+  void _triggerSearch(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        ref.read(patientSearchProvider.notifier).state = value;
+      }
+    });
+  }
+
+  void _updateSearchQuery(String value) {
+    _triggerSearch(value);
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _debounce?.cancel();
+    ref.read(patientSearchProvider.notifier).state = '';
+    _focusNode.requestFocus();
   }
 
   @override
@@ -43,22 +75,6 @@ class _SearchPatientScreenState extends ConsumerState<SearchPatientScreen>
     _focusNode.dispose();
     _tabController.dispose();
     super.dispose();
-  }
-
-  void _updateSearchQuery(String value) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        ref.read(patientSearchProvider.notifier).state = value;
-      }
-    });
-  }
-
-  void _clearSearch() {
-    _searchController.clear();
-    _debounce?.cancel();
-    ref.read(patientSearchProvider.notifier).state = '';
-    _focusNode.requestFocus();
   }
 
   @override
@@ -97,9 +113,7 @@ class _SearchPatientScreenState extends ConsumerState<SearchPatientScreen>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               decoration: BoxDecoration(
-                color: _focusNode.hasFocus
-                    ? Colors.white
-                    : Colors.grey.shade100,
+                color: _focusNode.hasFocus ? Colors.white : Colors.grey.shade100,
                 boxShadow: [
                   if (_focusNode.hasFocus)
                     BoxShadow(
@@ -187,7 +201,7 @@ class _SearchPatientScreenState extends ConsumerState<SearchPatientScreen>
   }
 }
 
-// ---------- Improved Card ----------
+// ---------- Improved Card (unchanged) ----------
 class _PatientCard extends StatelessWidget {
   final Patient patient;
   final VoidCallback onTap;

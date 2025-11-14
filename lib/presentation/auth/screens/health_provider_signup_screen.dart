@@ -1,5 +1,5 @@
-/// Clean Healthcare Provider Signup - Email/Password with License
-/// Updated to handle PendingVerification state properly
+/// Healthcare Provider Signup - Database clinic search
+/// Searches clinics table → Saves clinic_id to user
 library;
 
 import 'package:flutter/material.dart';
@@ -8,7 +8,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/validators.dart';
 import '../../providers/auth_notifier.dart';
 import '../widgets/role_selector_widget.dart';
-
+import '../widgets/clinic_search_sheet.dart';
 
 class HealthcareProviderSignupScreen extends ConsumerStatefulWidget {
   const HealthcareProviderSignupScreen({super.key});
@@ -27,12 +27,14 @@ class _HealthcareProviderSignupScreenState
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _licenseController = TextEditingController();
-  final _facilityController = TextEditingController();
+  final _clinicController = TextEditingController();
 
   UserRole _selectedRole = UserRole.nurse;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
+  String? _selectedClinicId;
+  Map<String, dynamic>? _selectedClinicData;
 
   @override
   void dispose() {
@@ -42,12 +44,14 @@ class _HealthcareProviderSignupScreenState
     _confirmPasswordController.dispose();
     _phoneController.dispose();
     _licenseController.dispose();
-    _facilityController.dispose();
+    _clinicController.dispose();
     super.dispose();
   }
 
   Future<void> _handleSignUp() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     if (!_agreeToTerms) {
       _showSnackBar('Please agree to Terms of Service', isError: true);
@@ -56,6 +60,11 @@ class _HealthcareProviderSignupScreenState
 
     if (_passwordController.text != _confirmPasswordController.text) {
       _showSnackBar('Passwords do not match', isError: true);
+      return;
+    }
+
+    if (_selectedClinicId == null) {
+      _showSnackBar('Please select a health facility', isError: true);
       return;
     }
 
@@ -69,9 +78,7 @@ class _HealthcareProviderSignupScreenState
           role: _selectedRole,
           phoneE164: phoneE164,
           licenseNumber: _licenseController.text.trim(),
-          facilityName: _facilityController.text.trim().isNotEmpty
-              ? _facilityController.text.trim()
-              : null,
+          clinicId: _selectedClinicId!,
         );
   }
 
@@ -107,17 +114,32 @@ class _HealthcareProviderSignupScreenState
     );
   }
 
+  Future<void> _showClinicSearch() async {
+    final selected = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const ClinicSearchSheet(),
+    );
+
+    if (selected != null && mounted) {
+      setState(() {
+        _selectedClinicId = selected['id'] as String;
+        _selectedClinicData = selected;
+        _clinicController.text = selected['name'] as String;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState is Loading;
 
-    // Listen for auth state changes and handle navigation
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       if (!mounted) return;
 
       if (next is PendingVerification) {
-        // Navigate to pending verification screen
         Navigator.pushReplacementNamed(
           context,
           AppRoutes.pendingVerification,
@@ -125,12 +147,10 @@ class _HealthcareProviderSignupScreenState
             'email': next.email,
             'role': next.role.name,
             'message': next.message,
+            'clinic': _selectedClinicData,
           },
         );
       } else if (next is Authenticated) {
-        // Shouldn't happen for new providers, but handle gracefully
-        print(
-            '⚠️ Provider authenticated without verification - check auth logic');
         _showSnackBar('Account created successfully!', isError: false);
       } else if (next is Error) {
         _showSnackBar(next.message, isError: true);
@@ -294,16 +314,37 @@ class _HealthcareProviderSignupScreenState
                 ),
                 const SizedBox(height: 16),
 
-                // Facility Name (Optional)
+                // Health Facility Search
                 TextFormField(
-                  controller: _facilityController,
+                  controller: _clinicController,
                   enabled: !isLoading,
-                  decoration: const InputDecoration(
-                    labelText: 'Health Facility (Optional)',
-                    hintText: 'e.g., Kenyatta National Hospital',
-                    prefixIcon: Icon(Icons.local_hospital_outlined),
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: 'Health Facility (Required)',
+                    hintText: 'Search for your facility',
+                    prefixIcon: const Icon(Icons.local_hospital_outlined),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _selectedClinicId != null
+                            ? Icons.check_circle
+                            : Icons.search,
+                        color: _selectedClinicId != null
+                            ? AppColors.success
+                            : AppColors.textLight,
+                      ),
+                      onPressed: isLoading ? null : _showClinicSearch,
+                    ),
                   ),
+                  onTap: isLoading ? null : _showClinicSearch,
+                  validator: (value) =>
+                      value == null || value.trim().isEmpty
+                          ? 'Please select your health facility'
+                          : null,
                 ),
+                if (_selectedClinicData != null) ...[
+                  const SizedBox(height: 8),
+                  _buildFacilityCard(_selectedClinicData!),
+                ],
                 const SizedBox(height: 24),
 
                 // Terms Checkbox
@@ -327,7 +368,7 @@ class _HealthcareProviderSignupScreenState
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        TextSpan(text: ' and certify my license is accurate'),
+                        TextSpan(text: ' and certify my license and facility are accurate'),
                       ],
                     ),
                   ),
@@ -361,6 +402,74 @@ class _HealthcareProviderSignupScreenState
     );
   }
 
+  Widget _buildFacilityCard(Map<String, dynamic> facility) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.secondary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.verified,
+                size: 16,
+                color: AppColors.success,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Facility Selected',
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.success,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (facility['county'] != null)
+            _buildFacilityDetail('County', facility['county'] as String),
+          if (facility['sub_county'] != null)
+            _buildFacilityDetail('Sub-County', facility['sub_county'] as String),
+          if (facility['facility_type'] != null)
+            _buildFacilityDetail('Type', facility['facility_type'] as String),
+          if (facility['mfl_code'] != null)
+            _buildFacilityDetail('MFL Code', facility['mfl_code'] as String),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFacilityDetail(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Text(
+            '$label: ',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textLight,
+              fontSize: 12,
+            ),
+          ),
+          Text(
+            value,
+            style: AppTextStyles.bodySmall.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader() {
     return Column(
       children: [
@@ -381,7 +490,7 @@ class _HealthcareProviderSignupScreenState
         ),
         const SizedBox(height: 8),
         Text(
-          'Your license will be verified before activation',
+          'Your license and facility will be verified before activation',
           style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textLight),
           textAlign: TextAlign.center,
         ),
@@ -415,6 +524,7 @@ class _HealthcareProviderSignupScreenState
           const SizedBox(height: 12),
           _buildRequirement('Valid nursing or medical license'),
           _buildRequirement('Professional email address'),
+          _buildRequirement('Registered health facility'),
           _buildRequirement('Manual verification (24-48 hours)'),
         ],
       ),

@@ -1,5 +1,5 @@
-/// Pending Verification Screen
-/// Shows healthcare providers they're waiting for license verification
+/// Updated Pending Verification Screen
+/// Shows healthcare providers they're waiting for license + facility verification
 library;
 
 import 'package:flutter/material.dart';
@@ -14,6 +14,7 @@ class PendingVerificationScreen extends StatelessWidget {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final email = args?['email'] as String? ?? '';
     final role = args?['role'] as String? ?? 'healthcare provider';
+    final clinicData = args?['clinic'] as Map<String, dynamic>?;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -56,13 +57,89 @@ class PendingVerificationScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'We are reviewing your license information. This typically takes 24-48 hours.',
+                'We are reviewing your license and facility information. This typically takes 24-48 hours.',
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.textLight,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
+
+              // Facility Card (if available)
+              if (clinicData != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.success.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.local_hospital,
+                              color: AppColors.success,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Your Facility',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.textLight,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  clinicData['name']?.toString() ?? '',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Divider(color: AppColors.success.withValues(alpha: 0.2)),
+                      const SizedBox(height: 12),
+                      _buildFacilityDetail(
+                        Icons.location_on_outlined,
+                        'County',
+                        clinicData['county']?.toString() ?? 'N/A',
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFacilityDetail(
+                        Icons.domain_outlined,
+                        'Type',
+                        clinicData['facility_type']?.toString() ?? 'N/A',
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFacilityDetail(
+                        Icons.verified_outlined,
+                        'MFL Code',
+                        clinicData['code']?.toString() ?? 'N/A',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Info Card
               Container(
@@ -84,8 +161,8 @@ class PendingVerificationScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     _buildInfoItem(
                       Icons.verified_user_outlined,
-                      'License Verification',
-                      'Our team is verifying your credentials',
+                      'License & Facility Verification',
+                      'Our team is verifying your credentials and facility registration',
                     ),
                     const SizedBox(height: 16),
                     _buildInfoItem(
@@ -128,6 +205,29 @@ class PendingVerificationScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFacilityDetail(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.success),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textLight,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: AppTextStyles.bodySmall.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
