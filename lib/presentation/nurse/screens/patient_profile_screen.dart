@@ -62,6 +62,156 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen>
     );
   }
 
+  void _showPatientActions() {
+    final isMother = widget.patient.type == 'mother';
+    
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Patient Actions',
+                      style: AppTextStyles.h3,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    if (isMother) ...[
+                      _buildActionTile(
+                        icon: Icons.edit,
+                        title: 'Edit Profile',
+                        subtitle: 'Update patient information',
+                        color: AppColors.primaryPink,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _navigateToEditProfile();
+                        },
+                      ),
+                      const Divider(),
+                    ],
+                    
+                    _buildActionTile(
+                      icon: Icons.history,
+                      title: 'View Full History',
+                      subtitle: 'All visits and records',
+                      color: AppColors.accentBlue,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showComingSoon('View Full History');
+                      },
+                    ),
+                    const Divider(),
+                    
+                    _buildActionTile(
+                      icon: Icons.description,
+                      title: 'Generate Report',
+                      subtitle: 'Export patient summary',
+                      color: AppColors.accentOrange,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showComingSoon('Generate Report');
+                      },
+                    ),
+                    const Divider(),
+                    
+                    _buildActionTile(
+                      icon: Icons.share,
+                      title: 'Share Information',
+                      subtitle: 'Send details to another provider',
+                      color: AppColors.accentGreen,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showComingSoon('Share Information');
+                      },
+                    ),
+                    
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 24),
+      ),
+      title: Text(
+        title,
+        style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(subtitle, style: AppTextStyles.bodySmall),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: onTap,
+      contentPadding: EdgeInsets.zero,
+    );
+  }
+
+  void _navigateToEditProfile() {
+    // Navigate to mother profile screen in edit mode
+    // You'll need to import the mother profile screen
+    // import 'package:mch_pink_book/presentation/mother/screens/mother_profile_screen.dart';
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditMotherProfileScreen(
+          motherId: widget.patient.id,
+          motherName: widget.patient.name,
+        ),
+      ),
+    ).then((_) {
+      // Refresh data when returning
+      setState(() {});
+    });
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$feature - Coming soon!'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMother = widget.patient.type == 'mother';
@@ -77,6 +227,13 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen>
             pinned: true,
             backgroundColor: Colors.transparent,
             elevation: 0,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+                onPressed: _showPatientActions,
+                tooltip: 'More actions',
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsetsDirectional.only(start: 80, bottom: 16),
               title: Text(
@@ -134,6 +291,61 @@ class _PatientProfileScreenState extends ConsumerState<PatientProfileScreen>
               ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Edit Mother Profile Screen Wrapper
+// ---------------------------------------------------------------------------
+class EditMotherProfileScreen extends StatefulWidget {
+  final String motherId;
+  final String motherName;
+  
+  const EditMotherProfileScreen({
+    super.key,
+    required this.motherId,
+    required this.motherName,
+  });
+
+  @override
+  State<EditMotherProfileScreen> createState() => _EditMotherProfileScreenState();
+}
+
+class _EditMotherProfileScreenState extends State<EditMotherProfileScreen> {
+  @override
+  Widget build(BuildContext context) {
+    // This is a nurse-initiated edit, so we'll need to create a custom edit screen
+    // or adapt the mother profile screen to work for nurses editing mother profiles
+    
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppColors.primaryPink,
+        foregroundColor: Colors.white,
+        title: Text('Edit ${widget.motherName}'),
+      ),
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.construction, size: 64, color: AppColors.textLight),
+              SizedBox(height: 16),
+              Text(
+                'Profile Editing',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Nurse profile editing screen coming soon!\n\nFor now, mothers can edit their own profiles from the Mother App.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textMedium),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -210,30 +422,65 @@ class _HeaderBackground extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'ID: ${patient.id}',
-                        style: AppTextStyles.bodySmall.copyWith(
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (patient.phone != null) ...[
+                          Row(
+                            children: [
+                              const Icon(Icons.phone, size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  patient.phone!,
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: Colors.white,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Colors.black38,
+                                        offset: Offset(0, 1),
+                                        blurRadius: 2,
+                                      )
+                                    ],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                        if (patient.nationalId != null) ...[
+                          Row(
+                            children: [
+                              const Icon(Icons.badge, size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Text(
+                                'ID: ${patient.nationalId}',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: Colors.white,
+                                  shadows: const [
+                                    Shadow(
+                                      color: Colors.black38,
+                                      offset: Offset(0, 1),
+                                      blurRadius: 2,
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                        _StatusChip(
+                          label: isMother ? 'Mother' : 'Child',
                           color: Colors.white,
-                          shadows: const [
-                            Shadow(
-                              color: Colors.black38,
-                              offset: Offset(0, 1),
-                              blurRadius: 2,
-                            )
-                          ],
+                          backgroundOpacity: 0.3,
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      _StatusChip(
-                        label: isMother ? 'Mother' : 'Child',
-                        color: Colors.white,
-                        backgroundOpacity: 0.3,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

@@ -106,33 +106,73 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
   }
 
   Future<void> _submit() async {
+    print('=== DEBUG: Submit button pressed ===');
+    
     if (!_formKey.currentState!.validate() || _selectedDob == null) {
+      print('DEBUG: Form validation failed');
+      print('DEBUG: Form is valid: ${_formKey.currentState!.validate()}');
+      print('DEBUG: DOB selected: ${_selectedDob != null}');
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
       return;
     }
 
+    print('DEBUG: Form validation passed');
+    print('DEBUG: Mother ID: ${widget.motherId}');
+    print('DEBUG: Child Name: ${_nameController.text.trim()}');
+    print('DEBUG: Child DOB: $_selectedDob');
+    print('DEBUG: Child Gender: $_gender');
+
     setState(() => _isSubmitting = true);
 
-    final success = await ref.read(childrenProvider(widget.motherId).notifier).addChild(
-          name: _nameController.text.trim(),
-          dateOfBirth: _selectedDob!,
-          gender: _gender,
-        );
+    try {
+      print('DEBUG: Calling addChild method...');
+      
+      final success = await ref.read(childrenProvider(widget.motherId).notifier).addChild(
+            name: _nameController.text.trim(),
+            dateOfBirth: _selectedDob!,
+            gender: _gender,
+          );
 
-    if (!mounted) return;
+      print('DEBUG: addChild returned: $success');
 
-    setState(() => _isSubmitting = false);
+      if (!mounted) {
+        print('DEBUG: Widget not mounted, returning');
+        return;
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(success ? 'Child registered!' : 'Failed to register child'),
-        backgroundColor: success ? Colors.green : Colors.red,
-      ),
-    );
+      setState(() => _isSubmitting = false);
 
-    if (success) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Child registered!' : 'Failed to register child'),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+
+      if (success) {
+        print('DEBUG: Registration successful, popping screen');
+        Navigator.pop(context);
+      } else {
+        print('DEBUG: Registration failed');
+      }
+    } catch (e, stackTrace) {
+      print('DEBUG: Exception caught in _submit: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      
+      if (!mounted) return;
+      
+      setState(() => _isSubmitting = false);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   String _formatDate(DateTime date) {

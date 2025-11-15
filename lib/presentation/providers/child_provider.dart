@@ -1,6 +1,7 @@
 /// Child Provider
 library;
 
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:collection/collection.dart'; // Required for ListEquality
@@ -72,11 +73,15 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
 
   /// Load all children for the mother
   Future<void> loadChildren() async {
+    print('DEBUG [ChildrenNotifier]: Loading children for mother: $motherId');
     state = state.copyWith(isLoading: true, error: null);
     try {
       final children = await _childService.getMotherChildren(motherId);
+      print('DEBUG [ChildrenNotifier]: Loaded ${children.length} children');
       state = state.copyWith(children: children, isLoading: false);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG [ChildrenNotifier]: Error loading children: $e');
+      print('DEBUG [ChildrenNotifier]: Stack trace: $stackTrace');
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -97,7 +102,24 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
     String? birthComplications,
     String? photoUrl,
   }) async {
+    print('=== DEBUG [ChildrenNotifier]: addChild called ===');
+    print('DEBUG: Mother ID: $motherId');
+    print('DEBUG: Name: $name');
+    print('DEBUG: Date of Birth: $dateOfBirth');
+    print('DEBUG: Gender: $gender');
+    print('DEBUG: Pregnancy ID: $pregnancyId');
+    print('DEBUG: Birth Weight: $birthWeight');
+    print('DEBUG: Birth Length: $birthLength');
+    print('DEBUG: Head Circumference: $headCircumference');
+    print('DEBUG: Birth Place: $birthPlace');
+    print('DEBUG: Birth Certificate No: $birthCertificateNo');
+    print('DEBUG: APGAR Score: $apgarScore');
+    print('DEBUG: Birth Complications: $birthComplications');
+    print('DEBUG: Photo URL: $photoUrl');
+    
     try {
+      print('DEBUG: Calling _childService.createChild...');
+      
       final newChild = await _childService.createChild(
         motherId: motherId,
         name: name,
@@ -114,9 +136,21 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
         photoUrl: photoUrl,
       );
 
+      print('DEBUG: Child created successfully!');
+      print('DEBUG: New child ID: ${newChild.id}');
+      print('DEBUG: New child name: ${newChild.name}');
+      print('DEBUG: Current children count: ${state.children.length}');
+      
       state = state.copyWith(children: [...state.children, newChild]);
+      
+      print('DEBUG: Updated children count: ${state.children.length}');
+      print('DEBUG: Returning true');
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG: ERROR in addChild: $e');
+      print('DEBUG: Error type: ${e.runtimeType}');
+      print('DEBUG: Stack trace: $stackTrace');
+      
       state = state.copyWith(error: e.toString());
       return false;
     }
@@ -136,6 +170,7 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
     String? birthComplications,
     String? photoUrl,
   }) async {
+    print('DEBUG [ChildrenNotifier]: updateChild called for ID: $childId');
     try {
       final updatedChild = await _childService.updateChild(
         childId: childId,
@@ -152,38 +187,50 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
         photoUrl: photoUrl,
       );
 
+      print('DEBUG [ChildrenNotifier]: Child updated successfully');
       final updatedList = state.children.map((c) => c.id == childId ? updatedChild : c).toList();
       state = state.copyWith(children: updatedList);
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG [ChildrenNotifier]: Error updating child: $e');
+      print('DEBUG [ChildrenNotifier]: Stack trace: $stackTrace');
       state = state.copyWith(error: e.toString());
       return false;
     }
   }
 
   Future<bool> deleteChild(String childId) async {
+    print('DEBUG [ChildrenNotifier]: deleteChild called for ID: $childId');
     try {
       await _childService.deleteChild(childId);
+      print('DEBUG [ChildrenNotifier]: Child deleted successfully');
       final updatedList = state.children.where((c) => c.id != childId).toList();
       state = state.copyWith(children: updatedList);
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG [ChildrenNotifier]: Error deleting child: $e');
+      print('DEBUG [ChildrenNotifier]: Stack trace: $stackTrace');
       state = state.copyWith(error: e.toString());
       return false;
     }
   }
 
   Future<void> filterByAgeCategory(String category) async {
+    print('DEBUG [ChildrenNotifier]: filterByAgeCategory called: $category');
     state = state.copyWith(isLoading: true, error: null);
     try {
       final children = await _childService.getChildrenByAgeCategory(motherId, category);
+      print('DEBUG [ChildrenNotifier]: Filtered ${children.length} children');
       state = state.copyWith(children: children, isLoading: false);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG [ChildrenNotifier]: Error filtering children: $e');
+      print('DEBUG [ChildrenNotifier]: Stack trace: $stackTrace');
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
   Future<void> searchChildren(String query) async {
+    print('DEBUG [ChildrenNotifier]: searchChildren called: $query');
     if (query.isEmpty) {
       await loadChildren();
       return;
@@ -191,25 +238,32 @@ class ChildrenNotifier extends StateNotifier<ChildrenState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final children = await _childService.searchChildren(motherId, query);
+      print('DEBUG [ChildrenNotifier]: Found ${children.length} children');
       state = state.copyWith(children: children, isLoading: false);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG [ChildrenNotifier]: Error searching children: $e');
+      print('DEBUG [ChildrenNotifier]: Stack trace: $stackTrace');
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
   Future<String?> uploadChildPhoto(
     String childId,
-    List<int> fileBytes,
+    Uint8List fileBytes,
     String fileExtension,
   ) async {
+    print('DEBUG [ChildrenNotifier]: uploadChildPhoto called for ID: $childId');
     try {
       final photoUrl = await _childService.uploadChildPhoto(childId, fileBytes, fileExtension);
+      print('DEBUG [ChildrenNotifier]: Photo uploaded: $photoUrl');
       final updatedList = state.children.map((c) {
         return c.id == childId ? c.copyWith(photoUrl: photoUrl) : c;
       }).toList();
       state = state.copyWith(children: updatedList);
       return photoUrl;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG [ChildrenNotifier]: Error uploading photo: $e');
+      print('DEBUG [ChildrenNotifier]: Stack trace: $stackTrace');
       state = state.copyWith(error: e.toString());
       return null;
     }
@@ -242,11 +296,15 @@ class AllChildrenNotifier extends StateNotifier<ChildrenState> {
   }
 
   Future<void> loadAllChildren() async {
+    print('DEBUG [AllChildrenNotifier]: Loading all children');
     state = state.copyWith(isLoading: true, error: null);
     try {
       final children = await _childService.getAllChildren();
+      print('DEBUG [AllChildrenNotifier]: Loaded ${children.length} children');
       state = state.copyWith(children: children, isLoading: false);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG [AllChildrenNotifier]: Error loading all children: $e');
+      print('DEBUG [AllChildrenNotifier]: Stack trace: $stackTrace');
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -259,6 +317,7 @@ class AllChildrenNotifier extends StateNotifier<ChildrenState> {
 // For mother-specific children
 final childrenProvider = StateNotifierProvider.family<ChildrenNotifier, ChildrenState, String>(
   (ref, motherId) {
+    print('DEBUG [Provider]: Creating ChildrenNotifier for mother: $motherId');
     final childService = ref.watch(childServiceProvider);
     return ChildrenNotifier(childService, motherId);
   },
@@ -266,18 +325,21 @@ final childrenProvider = StateNotifierProvider.family<ChildrenNotifier, Children
 
 // For ALL children (nurse/clinic view)
 final allChildrenProvider = StateNotifierProvider<AllChildrenNotifier, ChildrenState>((ref) {
+  print('DEBUG [Provider]: Creating AllChildrenNotifier');
   final childService = ref.watch(childServiceProvider);
   return AllChildrenNotifier(childService);
 });
 
 // Single child by ID
 final childProvider = FutureProvider.family<ChildEntity?, String>((ref, childId) async {
+  print('DEBUG [Provider]: Fetching child by ID: $childId');
   final childService = ref.watch(childServiceProvider);
   return await childService.getChildById(childId);
 });
 
 // Child by QR code
 final childByQrProvider = FutureProvider.family<ChildEntity?, String>((ref, qrCode) async {
+  print('DEBUG [Provider]: Fetching child by QR code: $qrCode');
   final childService = ref.watch(childServiceProvider);
   return await childService.getChildByQrCode(qrCode);
 });

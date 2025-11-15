@@ -20,10 +20,25 @@ class PregnancyTab extends ConsumerWidget {
     return pregnancyAsync.when(
       loading: () => const _PregnancyLoading(),
       error: (err, _) => Center(
-        child: Text(
-          'Error loading pregnancy: $err',
-          style: AppTextStyles.error,
-          textAlign: TextAlign.center,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading pregnancy',
+                style: AppTextStyles.h3,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                err.toString(),
+                style: AppTextStyles.bodySmall.copyWith(color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
       data: (pregnancy) {
@@ -37,25 +52,34 @@ class PregnancyTab extends ConsumerWidget {
 }
 
 /// ---------------------------------------------------------------------------
-/// Loading shimmer while fetching data
+/// Loading shimmer - FIXED: Proper use of LoadingShimmer widget
 /// ---------------------------------------------------------------------------
 class _PregnancyLoading extends StatelessWidget {
-  const _PregnancyLoading(); // ← Removed `const` from constructor
+  const _PregnancyLoading();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LoadingShimmer(
+          // Main pregnancy card shimmer
+          const LoadingShimmer(
+            count: 1,
             height: 180,
-            borderRadius: BorderRadius.circular(16),
+            width: double.infinity,
+            borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
-          const SizedBox(height: 16),
-          LoadingShimmer(height: 20, width: 150),
-          const SizedBox(height: 8),
-          LoadingShimmer(height: 20, width: 200),
+          
+          const SizedBox(height: AppSpacing.lg),
+          
+          // Detail rows shimmer - using compact mode
+          const LoadingShimmer(
+            count: 3,
+            height: 60,
+            compact: true,
+          ),
         ],
       ),
     );

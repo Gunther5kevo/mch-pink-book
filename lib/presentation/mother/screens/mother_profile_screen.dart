@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/network/supabase_client.dart';
 import '../../../domain/entities/user_entity.dart';
 import '../../providers/auth_notifier.dart';
 
@@ -22,8 +23,10 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
   late TextEditingController _fullNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  late TextEditingController _emergencyContactController;
+  late TextEditingController _emergencyNameController;
 
-  String? _selectedClinic;
+  String? _preferredClinic;
   DateTime? _lastVisitDate;
   int _numberOfChildren = 0;
   bool _isPregnant = false;
@@ -44,6 +47,8 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
     _fullNameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
+    _emergencyContactController = TextEditingController();
+    _emergencyNameController = TextEditingController();
     _loadUserData();
   }
 
@@ -55,7 +60,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
       _fullNameController.text = user.fullName;
       _emailController.text = user.email ?? '';
       _phoneController.text = user.phoneE164 ?? '';
-      _selectedClinic = user.preferredClinic;
+      _preferredClinic = user.preferredClinic;
       _lastVisitDate = user.lastVisitDate;
 
       // Safe metadata access
@@ -72,6 +77,10 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
       if (deliveryDateStr is String) {
         _expectedDeliveryDate = DateTime.tryParse(deliveryDateStr);
       }
+
+      // Load emergency contact if exists (from user entity or metadata)
+      _emergencyContactController.text = metadata['emergency_contact']?.toString() ?? '';
+      _emergencyNameController.text = metadata['emergency_name']?.toString() ?? '';
     }
   }
 
@@ -80,6 +89,8 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _emergencyContactController.dispose();
+    _emergencyNameController.dispose();
     super.dispose();
   }
 
@@ -89,26 +100,66 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
     setState(() => _isSubmitting = true);
 
     try {
+      final supabase = SupabaseClientManager.client;
+      final userId = supabase.auth.currentUser?.id;
+
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Prepare metadata
       final metadata = <String, dynamic>{
         'number_of_children': _numberOfChildren,
         'is_pregnant': _isPregnant,
         if (_expectedDeliveryDate != null)
           'expected_delivery_date': _expectedDeliveryDate!.toIso8601String(),
+        if (_emergencyContactController.text.trim().isNotEmpty)
+          'emergency_contact': _emergencyContactController.text.trim(),
+        if (_emergencyNameController.text.trim().isNotEmpty)
+          'emergency_name': _emergencyNameController.text.trim(),
         'profile_updated_at': DateTime.now().toIso8601String(),
       };
 
-      await ref.read(authNotifierProvider.notifier).updateProfile({
+      // Update the users table directly
+      final updates = <String, dynamic>{
         'full_name': _fullNameController.text.trim(),
-        'preferred_clinic': _selectedClinic,
+        'preferred_clinic': _preferredClinic,
         'last_visit_date': _lastVisitDate?.toIso8601String(),
         'metadata': metadata,
-      });
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // Only include emergency fields if they have values
+      if (_emergencyContactController.text.trim().isNotEmpty) {
+        updates['emergency_contact'] = _emergencyContactController.text.trim();
+      }
+      if (_emergencyNameController.text.trim().isNotEmpty) {
+        updates['emergency_name'] = _emergencyNameController.text.trim();
+      }
+
+      debugPrint('=== Updating user profile ===');
+      debugPrint('User ID: $userId');
+      debugPrint('Updates: $updates');
+
+      await supabase
+          .from('users')
+          .update(updates)
+          .eq('id', userId);
+
+      debugPrint('Profile updated successfully');
+
+      // Refresh auth state to get updated user
+      await ref.read(authNotifierProvider.notifier).refreshUser();
 
       if (mounted) {
         setState(() => _isEditing = false);
         _showSuccess('Profile updated successfully!');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('=== Profile update error ===');
+      debugPrint('Error: $e');
+      debugPrint('Stack trace: $stackTrace');
+
       if (mounted) {
         _showError('Failed to update profile: $e');
       }
@@ -124,7 +175,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
           children: [
             const Icon(Icons.check_circle, color: Colors.white),
             const SizedBox(width: 12),
-            Text(message),
+            Expanded(child: Text(message)),
           ],
         ),
         backgroundColor: AppColors.success,
@@ -139,6 +190,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
         content: Text(message),
         backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -207,7 +259,17 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Text('Save', style: TextStyle(color: Colors.white)),
+                  : const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          if (_isEditing)
+            TextButton(
+              onPressed: _isSubmitting ? null : () {
+                setState(() {
+                  _isEditing = false;
+                  _loadUserData(); // Reload original data
+                });
+              },
+              child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
             ),
         ],
       ),
@@ -236,7 +298,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
                   label: 'Full Name',
                   icon: Icons.person_outline,
                   enabled: _isEditing,
-                  validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                  validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _buildTextField(
@@ -244,6 +306,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
                   label: 'Email',
                   icon: Icons.email_outlined,
                   enabled: false,
+                  helperText: 'Email cannot be changed',
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _buildTextField(
@@ -251,6 +314,28 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
                   label: 'Phone Number',
                   icon: Icons.phone_outlined,
                   enabled: false,
+                  helperText: 'Phone cannot be changed',
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            _buildSection(
+              title: 'Emergency Contact',
+              icon: Icons.emergency,
+              children: [
+                _buildTextField(
+                  controller: _emergencyNameController,
+                  label: 'Emergency Contact Name',
+                  icon: Icons.person_outline,
+                  enabled: _isEditing,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _buildTextField(
+                  controller: _emergencyContactController,
+                  label: 'Emergency Contact Phone',
+                  icon: Icons.phone_outlined,
+                  enabled: _isEditing,
                 ),
               ],
             ),
@@ -354,6 +439,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
           Text(
             user.fullName,
             style: AppTextStyles.h2.copyWith(color: Colors.white),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.sm),
           Container(
@@ -399,13 +485,15 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
     required IconData icon,
     required bool enabled,
     String? Function(String?)? validator,
+    String? helperText,
   }) {
     return TextFormField(
       controller: controller,
       enabled: enabled,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.textLight),
+        helperText: helperText,
+        prefixIcon: Icon(icon, color: enabled ? AppColors.primaryPink : AppColors.textLight),
         border: OutlineInputBorder(borderRadius: AppBorderRadius.circular(AppBorderRadius.md)),
         filled: !enabled,
         fillColor: enabled ? null : AppColors.cardBackground.withOpacity(0.3),
@@ -469,7 +557,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
                 if (!v) _expectedDeliveryDate = null;
               })
           : null,
-      activeThumbColor: AppColors.primaryPink,
+      activeColor: AppColors.primaryPink,
       secondary: Icon(_isPregnant ? Icons.pregnant_woman : Icons.person, color: AppColors.primaryPink),
     );
   }
@@ -500,7 +588,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
                   ),
                   if (_expectedDeliveryDate != null) ...[
                     const SizedBox(height: 4),
-                    Text(_getDaysRemaining(), style: AppTextStyles.caption),
+                    Text(_getDaysRemaining(), style: AppTextStyles.caption.copyWith(color: AppColors.primaryPink)),
                   ],
                 ],
               ),
@@ -514,7 +602,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
 
   Widget _buildClinicDropdown() {
     return DropdownButtonFormField<String>(
-      initialValue: _selectedClinic, // Fixed: was initialValue
+      value: _preferredClinic,
       decoration: InputDecoration(
         labelText: 'Preferred Health Facility',
         prefixIcon: const Icon(Icons.local_hospital),
@@ -523,7 +611,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
         fillColor: _isEditing ? null : AppColors.cardBackground.withOpacity(0.3),
       ),
       items: _clinics.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-      onChanged: _isEditing ? (v) => setState(() => _selectedClinic = v) : null,
+      onChanged: _isEditing ? (v) => setState(() => _preferredClinic = v) : null,
     );
   }
 
@@ -569,6 +657,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
       subtitle: subtitle != null ? Text(subtitle) : null,
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
+      contentPadding: EdgeInsets.zero,
     );
   }
 
@@ -593,13 +682,19 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
         title: const Text('Sign Out'),
         content: const Text('Are you sure you want to sign out?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ref.read(authNotifierProvider.notifier).signOut();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Sign Out'),
           ),
         ],

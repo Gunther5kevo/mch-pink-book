@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mch_pink_book/core/constants/app_constants.dart';
 import 'package:mch_pink_book/domain/entities/child_entity.dart';
 import 'package:mch_pink_book/presentation/providers/child_provider.dart';
+import 'package:mch_pink_book/presentation/nurse/screens/child_profile_screen.dart';
 
 class ChildrenTab extends ConsumerWidget {
   final String motherId;
@@ -53,7 +54,10 @@ class ChildrenTab extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(), // Needed for RefreshIndicator
           padding: const EdgeInsets.all(16),
           itemCount: children.length,
-          itemBuilder: (context, index) => _ChildCard(child: children[index]),
+          itemBuilder: (context, index) => _ChildCard(
+            child: children[index],
+            motherId: motherId,
+          ),
         );
       }),
     );
@@ -146,10 +150,19 @@ class _EmptyChildrenState extends StatelessWidget {
 // ———————————————————————— CHILD CARD ————————————————————————
 class _ChildCard extends StatelessWidget {
   final ChildEntity child;
-  const _ChildCard({required this.child});
+  final String motherId;
+  
+  const _ChildCard({
+    required this.child,
+    required this.motherId,
+  });
 
   @override
   Widget build(BuildContext context) {
+    print('DEBUG [_ChildCard]: Rendering card for child: ${child.name}');
+    print('DEBUG: Date of birth: ${child.dateOfBirth}');
+    print('DEBUG: Formatted DOB: ${child.dateOfBirthFormatted}');
+    
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
@@ -157,9 +170,14 @@ class _ChildCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          // TODO: Navigate to Child Detail Screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opening ${child.name}\'s profile...')),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChildProfileScreen(
+                child: child,
+                motherId: motherId,
+              ),
+            ),
           );
         },
         child: Padding(
@@ -185,8 +203,14 @@ class _ChildCard extends StatelessWidget {
                   children: [
                     Text(child.name, style: AppTextStyles.h3),
                     const SizedBox(height: 4),
-                    Text('Born: ${child.dateOfBirthFormatted}', style: AppTextStyles.bodySmall),
-                    Text('Age: ${child.ageString}', style: AppTextStyles.bodySmall.copyWith(color: Colors.grey[600])),
+                    Text(
+                      'Born: ${child.dateOfBirthFormatted}',
+                      style: AppTextStyles.bodySmall,
+                    ),
+                    Text(
+                      'Age: ${child.ageString}',
+                      style: AppTextStyles.bodySmall.copyWith(color: Colors.grey[600]),
+                    ),
                   ],
                 ),
               ),

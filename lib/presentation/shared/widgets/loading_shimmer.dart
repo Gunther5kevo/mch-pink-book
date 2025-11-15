@@ -95,7 +95,7 @@ class LoadingShimmer extends StatelessWidget {
   }
 
   // -------------------------------------------------------------------------
-  // The original list‑item skeleton (unchanged)
+  // The original list‑item skeleton (FIXED overflow issue)
   // -------------------------------------------------------------------------
   Widget _listItemSkeleton() {
     return Container(
@@ -125,29 +125,31 @@ class LoadingShimmer extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Text lines
+          // Text lines - FIXED: Changed mainAxisAlignment and adjusted spacing
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.center, // Changed from spaceEvenly
               children: [
                 Container(
-                  height: 16,
+                  height: compact ? 12 : 16,
                   width: double.infinity,
                   color: Colors.grey[400],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: compact ? 6 : 8),
                 Container(
-                  height: 14,
+                  height: compact ? 10 : 14,
                   width: 180,
                   color: Colors.grey[400],
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 14,
-                  width: 120,
-                  color: Colors.grey[400],
-                ),
+                if (!compact) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 14,
+                    width: 120,
+                    color: Colors.grey[400],
+                  ),
+                ],
               ],
             ),
           ),

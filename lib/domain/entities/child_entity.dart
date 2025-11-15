@@ -49,7 +49,11 @@ class ChildEntity extends Equatable {
     required this.updatedAt,
   });
 
-factory ChildEntity.fromJson(PostgrestMap json) {
+  factory ChildEntity.fromJson(PostgrestMap json) {
+    print('DEBUG [ChildEntity.fromJson]: Parsing JSON: $json');
+    print('DEBUG: date_of_birth value: ${json['date_of_birth']}');
+    print('DEBUG: date_of_birth type: ${json['date_of_birth'].runtimeType}');
+    
     return ChildEntity(
       id: json['id'] as String,
       motherId: json['mother_id'] as String,
@@ -94,6 +98,17 @@ factory ChildEntity.fromJson(PostgrestMap json) {
     return now.difference(dateOfBirth).inDays;
   }
 
+  /// Calculate age in years
+  int get ageInYears {
+    final now = DateTime.now();
+    int years = now.year - dateOfBirth.year;
+    if (now.month < dateOfBirth.month || 
+        (now.month == dateOfBirth.month && now.day < dateOfBirth.day)) {
+      years--;
+    }
+    return years;
+  }
+
   /// Get formatted age string
   String get ageString {
     final months = ageInMonths;
@@ -103,14 +118,33 @@ factory ChildEntity.fromJson(PostgrestMap json) {
     } else if (months < 12) {
       return '$months ${months == 1 ? 'month' : 'months'} old';
     } else {
-      final years = months ~/ 12;
-      final remainingMonths = months % 12;
+      final years = ageInYears;
+      final remainingMonths = months - (years * 12);
       if (remainingMonths == 0) {
         return '$years ${years == 1 ? 'year' : 'years'} old';
       }
-      return '$years ${years == 1 ? 'year' : 'years'}, $remainingMonths ${remainingMonths == 1 ? 'month' : 'months'} old';
+      return '$years ${years == 1 ? 'yr' : 'yrs'}, $remainingMonths ${remainingMonths == 1 ? 'mo' : 'mos'}';
     }
   }
+
+  /// Get formatted date of birth (DD/MM/YYYY)
+  String get dateOfBirthFormatted {
+    print('DEBUG [ChildEntity]: Formatting date: $dateOfBirth');
+    return '${dateOfBirth.day.toString().padLeft(2, '0')}/'
+           '${dateOfBirth.month.toString().padLeft(2, '0')}/'
+           '${dateOfBirth.year}';
+  }
+
+  /// Get age category (Infant, Toddler, Child)
+  String get ageCategory {
+    final months = ageInMonths;
+    if (months < 12) return 'Infant';
+    if (months < 36) return 'Toddler';
+    return 'Child';
+  }
+
+  /// Get QR code (alias for uniqueQrCode)
+  String get qrCode => uniqueQrCode;
 
   /// Check if birth weight is low (< 2.5 kg)
   bool get isLowBirthWeight {
@@ -133,6 +167,9 @@ factory ChildEntity.fromJson(PostgrestMap json) {
         return 'Other';
     }
   }
+
+  /// Get full name (trimmed)
+  String get fullName => name.trim();
 
   ChildEntity copyWith({
     String? id,
@@ -179,7 +216,33 @@ factory ChildEntity.fromJson(PostgrestMap json) {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
-String get fullName => name.trim();
+
+  /// Convert to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'mother_id': motherId,
+      'pregnancy_id': pregnancyId,
+      'name': name,
+      'date_of_birth': dateOfBirth.toIso8601String(),
+      'gender': gender,
+      'birth_weight': birthWeight,
+      'birth_length': birthLength,
+      'head_circumference': headCircumference,
+      'birth_place': birthPlace,
+      'birth_certificate_no': birthCertificateNo,
+      'apgar_score': apgarScore,
+      'birth_complications': birthComplications,
+      'unique_qr_code': uniqueQrCode,
+      'photo_url': photoUrl,
+      'is_active': isActive,
+      'version': version,
+      'last_updated_at': lastUpdatedAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
   @override
   List<Object?> get props => [
         id,
@@ -204,7 +267,17 @@ String get fullName => name.trim();
         updatedAt,
       ];
 
-  get dateOfBirthFormatted => null;
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ChildEntity && other.id == id;
+  }
 
+  @override
+  int get hashCode => id.hashCode;
 
+  @override
+  String toString() {
+    return 'ChildEntity(id: $id, name: $name, dateOfBirth: $dateOfBirth, gender: $gender, motherId: $motherId)';
+  }
 }

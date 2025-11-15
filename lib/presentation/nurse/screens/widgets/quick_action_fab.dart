@@ -1,8 +1,8 @@
-// TODO Implement this library.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mch_pink_book/presentation/nurse/screens/helpers/navigation_helpers.dart';
 import 'package:mch_pink_book/presentation/nurse/screens/nurse_appointments_screen.dart';
+import 'package:mch_pink_book/presentation/nurse/screens/register_patient_screen.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../nurse/screens/search_patient_screen.dart';
 import '../helpers/immunization_helpers.dart';
@@ -40,11 +40,16 @@ class QuickActionFAB extends ConsumerWidget {
             _buildQuickActionTile(
               context: context,
               icon: Icons.person_add,
-              label: 'Add New Mother',
+              label: 'Register Patient',
               color: AppColors.primaryPink,
               onTap: () {
                 Navigator.pop(context);
-                DialogHelpers.showComingSoon(context, 'Add New Mother');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const RegisterPatientScreen(),
+                  ),
+                );
               },
             ),
             _buildQuickActionTile(
@@ -68,11 +73,10 @@ class QuickActionFAB extends ConsumerWidget {
               label: 'Schedule Appointment',
               color: AppColors.accentBlue,
               onTap: () {
-                Navigator.pop(context); // close the bottom sheet
+                Navigator.pop(context);
                 NavigationHelpers.goToAppointments(
                   context,
-                  AppointmentFilterType
-                      .upcoming, // or null if you want "Today" as default
+                  AppointmentFilterType.upcoming,
                 );
               },
             ),
