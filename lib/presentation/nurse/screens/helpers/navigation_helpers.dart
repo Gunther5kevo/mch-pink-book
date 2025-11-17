@@ -1,6 +1,5 @@
 // TODO Implement this library.
 import 'package:flutter/material.dart';
-import '../../../providers/appointments_provider.dart';
 import '../../screens/nurse_appointments_screen.dart';
 import './dialog_helpers.dart';
 

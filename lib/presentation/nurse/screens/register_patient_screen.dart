@@ -347,7 +347,7 @@ class _RegisterPatientScreenState extends ConsumerState<RegisterPatientScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _childGender,
+              initialValue: _childGender,
               decoration: const InputDecoration(
                 labelText: 'Gender *',
                 prefixIcon: Icon(Icons.wc),

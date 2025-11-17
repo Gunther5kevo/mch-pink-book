@@ -6,7 +6,6 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/stat_card.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../providers/clinic_dashboard_providers.dart';
-import '../../../providers/appointments_provider.dart';
 import '../helpers/navigation_helpers.dart';
 
 class ClinicStatsSection extends ConsumerWidget {

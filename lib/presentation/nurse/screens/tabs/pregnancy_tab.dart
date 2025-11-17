@@ -19,40 +19,57 @@ class PregnancyTab extends ConsumerWidget {
 
     return pregnancyAsync.when(
       loading: () => const _PregnancyLoading(),
-      error: (err, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                'Error loading pregnancy',
-                style: AppTextStyles.h3,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                err.toString(),
-                style: AppTextStyles.bodySmall.copyWith(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            ],
+      error: (err, stack) {
+        // Enhanced error display with stack trace for debugging
+        debugPrint('❌ Pregnancy Tab Error: $err');
+        debugPrint('Stack: $stack');
+        
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error loading pregnancy', style: AppTextStyles.h3),
+                const SizedBox(height: 8),
+                Text(
+                  err.toString(),
+                  style: AppTextStyles.bodySmall.copyWith(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // Retry by invalidating the provider
+                    ref.invalidate(activePregnancyProvider(motherId));
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryPink,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
       data: (pregnancy) {
+        debugPrint('✅ Pregnancy data received: ${pregnancy?.id ?? "null"}');
+        
         if (pregnancy == null) {
-          return _EmptyPregnancyState(motherId: motherId);
+          return _EmptyPregnancyState(motherId: motherId, ref: ref);
         }
-        return _PregnancyDetailCard(pregnancy: pregnancy);
+        return _PregnancyDetailCard(pregnancy: pregnancy, motherId: motherId, ref: ref);
       },
     );
   }
 }
 
 /// ---------------------------------------------------------------------------
-/// Loading shimmer - FIXED: Proper use of LoadingShimmer widget
+/// Loading shimmer
 /// ---------------------------------------------------------------------------
 class _PregnancyLoading extends StatelessWidget {
   const _PregnancyLoading();
@@ -64,17 +81,13 @@ class _PregnancyLoading extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Main pregnancy card shimmer
           const LoadingShimmer(
             count: 1,
             height: 180,
             width: double.infinity,
             borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
-          
           const SizedBox(height: AppSpacing.lg),
-          
-          // Detail rows shimmer - using compact mode
           const LoadingShimmer(
             count: 3,
             height: 60,
@@ -91,7 +104,12 @@ class _PregnancyLoading extends StatelessWidget {
 /// ---------------------------------------------------------------------------
 class _EmptyPregnancyState extends StatelessWidget {
   final String motherId;
-  const _EmptyPregnancyState({required this.motherId});
+  final WidgetRef ref;
+  
+  const _EmptyPregnancyState({
+    required this.motherId,
+    required this.ref,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -112,9 +130,7 @@ class _EmptyPregnancyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: () {
-                // TODO: Navigate to create pregnancy form
-              },
+              onPressed: () => _showCreatePregnancyDialog(context, motherId, ref),
               icon: const Icon(Icons.add),
               label: const Text('Start New Pregnancy'),
               style: ElevatedButton.styleFrom(
@@ -126,6 +142,125 @@ class _EmptyPregnancyState extends StatelessWidget {
       ),
     );
   }
+
+  void _showCreatePregnancyDialog(BuildContext context, String motherId, WidgetRef ref) {
+    DateTime? selectedDate;
+    DateTime? lmpDate;
+    final dateController = TextEditingController();
+    final lmpController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Start New Pregnancy'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Expected Delivery Date:'),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now().add(const Duration(days: 180)),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        selectedDate = date;
+                        dateController.text = _formatDate(date);
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today),
+                  label: Text(
+                    selectedDate == null ? 'Select Date' : dateController.text,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Last Menstrual Period (Optional):'),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now().subtract(const Duration(days: 90)),
+                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now(),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        lmpDate = date;
+                        lmpController.text = _formatDate(date);
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today),
+                  label: Text(
+                    lmpDate == null ? 'Select LMP Date' : lmpController.text,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: selectedDate == null
+                  ? null
+                  : () async {
+                      try {
+                        await ref
+                            .read(pregnancyServiceProvider)
+                            .createPregnancy(
+                              motherId: motherId,
+                              expectedDelivery: selectedDate!,
+                              lmp: lmpDate,
+                            );
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ref.invalidate(activePregnancyProvider(motherId));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Pregnancy record created successfully!'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
 }
 
 /// ---------------------------------------------------------------------------
@@ -133,7 +268,14 @@ class _EmptyPregnancyState extends StatelessWidget {
 /// ---------------------------------------------------------------------------
 class _PregnancyDetailCard extends StatelessWidget {
   final PregnancyEntity pregnancy;
-  const _PregnancyDetailCard({required this.pregnancy});
+  final String motherId;
+  final WidgetRef ref;
+  
+  const _PregnancyDetailCard({
+    required this.pregnancy,
+    required this.motherId,
+    required this.ref,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -180,14 +322,34 @@ class _PregnancyDetailCard extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Main details
+              _DetailRow('Pregnancy Number', '#${pregnancy.pregnancyNumber}'),
               _DetailRow('Trimester', trimester.toString()),
+              _DetailRow('Gestation', '${pregnancy.gestationWeeks}w ${pregnancy.gestationDays % 7}d'),
               _DetailRow('Expected Delivery', pregnancy.expectedDeliveryFormatted),
               _DetailRow('Days Remaining', '$daysRemaining days'),
+              if (pregnancy.lmp != null)
+                _DetailRow('LMP', _formatDate(pregnancy.lmp!)),
               _DetailRow('Gravida', pregnancy.gravida?.toString() ?? 'N/A'),
               _DetailRow('Parity', pregnancy.parity?.toString() ?? 'N/A'),
               _DetailRow('Blood Group', pregnancy.bloodGroup ?? 'Unknown'),
               _DetailRow('Rhesus', pregnancy.rhesus ?? 'Unknown'),
               _DetailRow('HIV Status', pregnancy.hivStatus ?? 'Not recorded'),
+              
+              if (pregnancy.riskFlags.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text('Risk Flags', style: AppTextStyles.h4),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: pregnancy.riskFlags.map((flag) => Chip(
+                    label: Text(flag),
+                    backgroundColor: Colors.red.shade50,
+                    labelStyle: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                  )).toList(),
+                ),
+              ],
+              
               if (pregnancy.notes?.isNotEmpty == true) ...[
                 const SizedBox(height: 16),
                 Text('Notes', style: AppTextStyles.h4),
@@ -197,24 +359,178 @@ class _PregnancyDetailCard extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Navigate to full pregnancy details
-                  },
-                  icon: const Icon(Icons.visibility),
-                  label: const Text('View Details'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryPink,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _showEditPregnancyDialog(context),
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryPink,
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // TODO: Navigate to full pregnancy details
+                      debugPrint('View details for pregnancy: ${pregnancy.id}');
+                    },
+                    icon: const Icon(Icons.visibility),
+                    label: const Text('View Full Details'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryPink,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _showEditPregnancyDialog(BuildContext context) {
+    DateTime? selectedDate = pregnancy.expectedDelivery;
+    DateTime? lmpDate = pregnancy.lmp;
+    final dateController = TextEditingController(text: _formatDate(selectedDate));
+    final lmpController = TextEditingController(
+      text: lmpDate != null ? _formatDate(lmpDate) : ''
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Update Pregnancy'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Expected Delivery Date:'),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        selectedDate = date;
+                        dateController.text = _formatDate(date);
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today),
+                  label: Text(dateController.text),
+                ),
+                const SizedBox(height: 16),
+                const Text('Last Menstrual Period:'),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: lmpDate ?? DateTime.now().subtract(const Duration(days: 90)),
+                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now(),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        lmpDate = date;
+                        lmpController.text = _formatDate(date);
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today),
+                  label: Text(
+                    lmpDate == null ? 'Set LMP Date' : lmpController.text,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  final updatedPregnancy = PregnancyEntity(
+                    id: pregnancy.id,
+                    motherId: pregnancy.motherId,
+                    pregnancyNumber: pregnancy.pregnancyNumber,
+                    startDate: pregnancy.startDate,
+                    expectedDelivery: selectedDate!,
+                    actualDelivery: pregnancy.actualDelivery,
+                    lmp: lmpDate,
+                    eddConfirmedBy: pregnancy.eddConfirmedBy,
+                    gravida: pregnancy.gravida,
+                    parity: pregnancy.parity,
+                    riskFlags: pregnancy.riskFlags,
+                    bloodGroup: pregnancy.bloodGroup,
+                    rhesus: pregnancy.rhesus,
+                    hivStatus: pregnancy.hivStatus,
+                    syphilisStatus: pregnancy.syphilisStatus,
+                    hepatitisB: pregnancy.hepatitisB,
+                    outcome: pregnancy.outcome,
+                    outcomeDate: pregnancy.outcomeDate,
+                    deliveryPlace: pregnancy.deliveryPlace,
+                    notes: pregnancy.notes,
+                    isActive: pregnancy.isActive,
+                    version: pregnancy.version,
+                    lastUpdatedAt: pregnancy.lastUpdatedAt,
+                    createdAt: pregnancy.createdAt,
+                    updatedAt: pregnancy.updatedAt,
+                  );
+
+                  await ref.read(pregnancyServiceProvider).updatePregnancy(
+                        pregnancy.id,
+                        updatedPregnancy,
+                      );
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ref.invalidate(activePregnancyProvider(motherId));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Pregnancy updated successfully!'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 }
 

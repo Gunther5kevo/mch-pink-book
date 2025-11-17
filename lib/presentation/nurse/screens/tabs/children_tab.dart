@@ -66,7 +66,7 @@ class ChildrenTab extends ConsumerWidget {
 
 // ———————————————————————— SHIMMER ————————————————————————
 class _ChildrenShimmer extends StatelessWidget {
-  const _ChildrenShimmer({Key? key}) : super(key: key);
+  const _ChildrenShimmer();
 
   @override
   Widget build(BuildContext context) {

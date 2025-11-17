@@ -1,7 +1,9 @@
 /// Pregnancy Service (Data Layer)
 /// Handles all pregnancy-related database operations
+/// ENHANCED: Added debug logging to diagnose null pregnancy issue
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../domain/entities/pregnancy_entity.dart';
 import '../../core/errors/app_exceptions.dart';
@@ -11,9 +13,35 @@ class PregnancyService {
 
   PregnancyService(this._supabase);
 
-  /// Get active pregnancy for a mother
+  /// Get active pregnancy for a mother - ENHANCED WITH DEBUG LOGGING
   Future<PregnancyEntity?> getActivePregnancy(String motherId) async {
+    debugPrint('🔍 PregnancyService.getActivePregnancy called');
+    debugPrint('   motherId: $motherId');
+    
     try {
+      // First, let's check if ANY pregnancies exist for this mother
+      final allPregnancies = await _supabase
+          .from('pregnancies')
+          .select('id, mother_id, pregnancy_number, is_active, created_at')
+          .eq('mother_id', motherId)
+          .order('created_at', ascending: false);
+      
+      debugPrint('   📊 Total pregnancies for this mother: ${allPregnancies.length}');
+      
+      if (allPregnancies.isNotEmpty) {
+        debugPrint('   📋 Pregnancy records:');
+        for (var p in allPregnancies) {
+          debugPrint('      - ID: ${p['id']}');
+          debugPrint('        Number: ${p['pregnancy_number']}');
+          debugPrint('        Active: ${p['is_active']}');
+          debugPrint('        Created: ${p['created_at']}');
+        }
+      } else {
+        debugPrint('   ⚠️ NO pregnancies found for this mother!');
+      }
+      
+      // Now get the active one
+      debugPrint('   🔎 Querying for active pregnancy...');
       final response = await _supabase
           .from('pregnancies')
           .select()
@@ -23,12 +51,36 @@ class PregnancyService {
           .limit(1)
           .maybeSingle();
 
-      if (response == null) return null;
+      if (response == null) {
+        debugPrint('   ❌ No active pregnancy found!');
+        debugPrint('   💡 Possible reasons:');
+        debugPrint('      1. No pregnancy records exist for this mother');
+        debugPrint('      2. All pregnancies have is_active = false');
+        debugPrint('      3. The mother_id does not match any records');
+        return null;
+      }
 
-      return _mapToEntity(response);
+      debugPrint('   ✅ Active pregnancy found! Raw response:');
+      debugPrint('      ${response.toString()}');
+
+      final pregnancy = _mapToEntity(response);
+      debugPrint('   📦 Mapped pregnancy entity:');
+      debugPrint('      - ID: ${pregnancy.id}');
+      debugPrint('      - Number: ${pregnancy.pregnancyNumber}');
+      debugPrint('      - Expected Delivery: ${pregnancy.expectedDelivery}');
+      debugPrint('      - Is Active: ${pregnancy.isActive}');
+      debugPrint('      - Trimester: ${pregnancy.trimester}');
+      debugPrint('      - Gestation: ${pregnancy.gestationWeeks}w ${pregnancy.gestationDays % 7}d');
+      
+      return pregnancy;
     } on PostgrestException catch (e) {
+      debugPrint('   ❌ PostgrestException: ${e.message}');
+      debugPrint('   Code: ${e.code}');
+      debugPrint('   Details: ${e.details}');
       throw DatabaseException('Failed to fetch active pregnancy: ${e.message}');
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('   ❌ Unexpected error: $e');
+      debugPrint('   Stack: $stack');
       throw DatabaseException('Unexpected error fetching pregnancy: $e');
     }
   }
@@ -87,12 +139,15 @@ class PregnancyService {
     String? hepatitisB,
     String? notes,
   }) async {
+    debugPrint('📝 Creating new pregnancy for mother: $motherId');
+    
     try {
       // Deactivate any existing active pregnancy first
       await _deactivateExistingPregnancies(motherId);
 
       // Get the next pregnancy number
       final pregnancyNumber = await _getNextPregnancyNumber(motherId);
+      debugPrint('   Pregnancy number: $pregnancyNumber');
 
       final now = DateTime.now();
       final data = {
@@ -119,16 +174,22 @@ class PregnancyService {
         'updated_at': now.toIso8601String(),
       };
 
+      debugPrint('   Inserting data: $data');
+
       final response = await _supabase
           .from('pregnancies')
           .insert(data)
           .select()
           .single();
 
+      debugPrint('   ✅ Pregnancy created successfully: ${response['id']}');
+
       return _mapToEntity(response);
     } on PostgrestException catch (e) {
+      debugPrint('   ❌ Failed to create pregnancy: ${e.message}');
       throw DatabaseException('Failed to create pregnancy: ${e.message}');
     } catch (e) {
+      debugPrint('   ❌ Unexpected error: $e');
       throw DatabaseException('Unexpected error creating pregnancy: $e');
     }
   }
@@ -138,6 +199,8 @@ class PregnancyService {
     String pregnancyId,
     PregnancyEntity pregnancy,
   ) async {
+    debugPrint('📝 Updating pregnancy: $pregnancyId');
+    
     try {
       final now = DateTime.now();
       final data = {
@@ -165,10 +228,14 @@ class PregnancyService {
           .select()
           .single();
 
+      debugPrint('   ✅ Pregnancy updated successfully');
+
       return _mapToEntity(response);
     } on PostgrestException catch (e) {
+      debugPrint('   ❌ Failed to update pregnancy: ${e.message}');
       throw DatabaseException('Failed to update pregnancy: ${e.message}');
     } catch (e) {
+      debugPrint('   ❌ Unexpected error: $e');
       throw DatabaseException('Unexpected error updating pregnancy: $e');
     }
   }
@@ -282,6 +349,7 @@ class PregnancyService {
 
   /// Deactivate all existing active pregnancies for a mother
   Future<void> _deactivateExistingPregnancies(String motherId) async {
+    debugPrint('   🔄 Deactivating existing pregnancies for mother: $motherId');
     final now = DateTime.now();
     await _supabase
         .from('pregnancies')
@@ -344,7 +412,7 @@ class PregnancyService {
       outcomeDate: json['outcome_date'] != null
           ? DateTime.parse(json['outcome_date'] as String)
           : null,
-      deliveryPlace: json['delivery_place'] as String?, // UUID as string
+      deliveryPlace: json['delivery_place'] as String?,
       notes: json['notes'] as String?,
       isActive: json['is_active'] as bool,
       version: json['version'] as int,

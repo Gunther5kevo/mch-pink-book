@@ -5,7 +5,6 @@ import 'package:mch_pink_book/presentation/nurse/screens/nurse_appointments_scre
 import '../../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../providers/clinic_dashboard_providers.dart';
-import '../../../providers/appointments_provider.dart';
 import '../helpers/navigation_helpers.dart';
 import './task_item_widget.dart';
 

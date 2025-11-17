@@ -20,6 +20,9 @@ class ActivePregnanciesSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Debug: Log filter selection
+    debugPrint('🔍 ActivePregnanciesSection - Filter: $selectedFilter');
+    
     final pregnanciesAsync = ref.watch(activePregnanciesProvider(selectedFilter));
 
     return Column(
@@ -33,13 +36,17 @@ class ActivePregnanciesSection extends ConsumerWidget {
               style: AppTextStyles.h3.copyWith(color: AppColors.textDark),
             ),
             TextButton.icon(
-              onPressed: () => NavigationHelpers.navigateToPregnanciesList(context),
+              onPressed: () {
+                debugPrint('📱 Navigating to full pregnancies list');
+                NavigationHelpers.navigateToPregnanciesList(context);
+              },
               icon: const Icon(Icons.arrow_forward, size: 16),
               label: const Text('View All'),
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
+        
         // Filter Chips
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -48,15 +55,29 @@ class ActivePregnanciesSection extends ConsumerWidget {
               return FilterChipWidget(
                 label: _getFilterLabel(filter),
                 selected: selectedFilter == filter,
-                onTap: () => onFilterChanged(filter),
+                onTap: () {
+                  debugPrint('🎯 Filter changed to: ${_getFilterLabel(filter)}');
+                  onFilterChanged(filter);
+                },
               );
             }).toList(),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
+        
+        // Pregnancies List
         pregnanciesAsync.when(
           data: (pregnancies) {
+            debugPrint('✅ Pregnancies loaded: ${pregnancies.length} items');
+            
+            // Debug: Log each pregnancy
+            for (var i = 0; i < pregnancies.length && i < 5; i++) {
+              final p = pregnancies[i];
+              debugPrint('   [$i] ${p.motherName} - ${p.statusText} (${p.gestationalAgeText})');
+            }
+            
             if (pregnancies.isEmpty) {
+              debugPrint('ℹ️ No pregnancies found for filter: $selectedFilter');
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
@@ -69,6 +90,13 @@ class ActivePregnanciesSection extends ConsumerWidget {
                         Text(
                           'No pregnancies found',
                           style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textLight,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Filter: ${_getFilterLabel(selectedFilter)}',
+                          style: AppTextStyles.caption.copyWith(
                             color: AppColors.textLight,
                           ),
                         ),
@@ -86,25 +114,72 @@ class ActivePregnanciesSection extends ConsumerWidget {
                   .toList(),
             );
           },
-          loading: () => const LoadingShimmer(count: 3),
-          error: (error, stack) => Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                children: [
-                  const Icon(Icons.error, color: Colors.red),
-                  const SizedBox(height: 8),
-                  Text('Error loading pregnancies: $error'),
-                  TextButton(
-                    onPressed: () => ref.refresh(
-                      activePregnanciesProvider(selectedFilter),
+          loading: () {
+            debugPrint('⏳ Loading pregnancies for filter: $selectedFilter');
+            return const LoadingShimmer(count: 3);
+          },
+          error: (error, stack) {
+            debugPrint('❌ Error loading pregnancies');
+            debugPrint('   Error: $error');
+            debugPrint('   Filter: $selectedFilter');
+            debugPrint('   Stack: $stack');
+            
+            return Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  children: [
+                    const Icon(Icons.error, color: Colors.red, size: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Error loading pregnancies',
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    child: const Text('Retry'),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      error.toString(),
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: Colors.red.shade700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Filter: ${_getFilterLabel(selectedFilter)}',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            debugPrint('🔄 Retrying pregnancy fetch for filter: $selectedFilter');
+                            ref.refresh(activePregnanciesProvider(selectedFilter));
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            debugPrint('🔄 Resetting to "All" filter');
+                            onFilterChanged(PregnancyFilter.all);
+                          },
+                          icon: const Icon(Icons.filter_list_off),
+                          label: const Text('Clear Filter'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );

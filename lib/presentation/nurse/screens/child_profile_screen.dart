@@ -202,7 +202,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
                   
                   _isEditing
                       ? DropdownButtonFormField<String>(
-                          value: _selectedGender,
+                          initialValue: _selectedGender,
                           decoration: const InputDecoration(
                             labelText: 'Gender',
                             border: OutlineInputBorder(),
@@ -464,11 +464,10 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
             const SizedBox(height: 16),
 
             // QR Code Card
-            if (widget.child.qrCode != null)
-              _SectionCard(
-                title: 'QR Code',
-                child: _InfoRow(label: 'Code', value: widget.child.qrCode),
-              ),
+            _SectionCard(
+              title: 'QR Code',
+              child: _InfoRow(label: 'Code', value: widget.child.qrCode),
+            ),
           ],
         ),
       ),

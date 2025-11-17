@@ -52,7 +52,7 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
               const SizedBox(height: 20),
 
               DropdownButtonFormField<String>(
-                value: _gender,
+                initialValue: _gender,
                 decoration: const InputDecoration(
                   labelText: 'Gender',
                   prefixIcon: Icon(Icons.wc),
