@@ -1,4 +1,3 @@
-
 # MCH Pink Book – Mobile App
 
 **Maternal & Child Health Digital Solution (Nurse + Mother Dashboards)**  
@@ -20,12 +19,12 @@ This README describes the structure and functionality of the two main dashboards
 ## 🔐 Authentication
 
 ### Sign In
-<img src="flutter_app/assets/images/login-screen.png" width="300" alt="Sign In Screen">
+<img src="assets/images/login-screen.png" width="300" alt="Sign In Screen">
 
 Mothers and healthcare providers can securely access their health records with email and password authentication.
 
 ### Create Account
-<img src="flutter_app/assets/images/create-account.png" width="300" alt="Create Account Screen">
+<img src="assets/images/create-account.png" width="300" alt="Create Account Screen">
 
 New users can register with:
 - Full Name
@@ -39,7 +38,7 @@ New users can register with:
 ## 👩‍⚕️ Nurse Dashboard
 **Comprehensive MCH Clinical Dashboard**
 
-<img src="flutter_app/assets/images/nurse-screen.png" width="300" alt="Nurse Home Screen">
+<img src="assets/images/nurse-screen.png" width="300" alt="Nurse Home Screen">
 
 The **NurseHomeScreen** provides real-time clinic insights, patient management tools, and ANC/KMC follow-up workflows.
 
@@ -55,7 +54,7 @@ The **NurseHomeScreen** provides real-time clinic insights, patient management t
   - Logout
 
 #### 🔍 Search Bar
-<img src="flutter_app/assets/images/search-patient.png" width="300" alt="Search Patient Screen">
+<img src="assets/images/search-patient.png" width="300" alt="Search Patient Screen">
 
 Allows nurses to quickly search for mothers, pregnancies, appointments, or children by:
 - Name
@@ -106,7 +105,7 @@ Shows:
 - Next scheduled dose
 
 #### ⚡ Quick Action Floating Button
-<img src="flutter_app/assets/images/quick-actions.png" width="300" alt="Quick Actions Menu">
+<img src="assets/images/quick-actions.png" width="300" alt="Quick Actions Menu">
 
 Shortcuts for:
 - **Register Patient** – Add new mothers
@@ -116,7 +115,7 @@ Shortcuts for:
 - **Record Immunization** – Log vaccine doses
 
 #### 📅 Appointments Management
-<img src="flutter_app/assets/images/nurse-appointment-screen.png" width="300" alt="Nurse Appointments Screen">
+<img src="assets/images/nurse-appointment-screen.png" width="300" alt="Nurse Appointments Screen">
 
 - View appointments by status: Today, Upcoming, Completed, Cancelled, All
 - Search by patient ID or notes
@@ -124,7 +123,7 @@ Shortcuts for:
 - Track scheduled visits
 
 #### 👤 Patient Registration
-<img src="flutter_app/assets/images/register-patient.png" width="300" alt="Register Patient Screen">
+<img src="assets/images/register-patient.png" width="300" alt="Register Patient Screen">
 
 Registration options:
 - Mother/Guardian Only
@@ -151,7 +150,7 @@ Pull-to-refresh reloads all:
 ## 🤱 Mother Dashboard
 **Personal Pregnancy & Child Health Home Screen**
 
-<img src="flutter_app/assets/images/mother-home.png" width="300" alt="Mother Home Screen">
+<img src="assets/images/mother-home.png" width="300" alt="Mother Home Screen">
 
 The **MotherHomeScreen** helps mothers track appointments, pregnancy progress, and children's health.
 
@@ -197,7 +196,7 @@ Shows:
 - Tap to view more (coming soon)
 
 #### 👶 My Children Section
-<img src="flutter_app/assets/images/my-children.png" width="300" alt="My Children Screen">
+<img src="assets/images/my-children.png" width="300" alt="My Children Screen">
 
 Displays:
 - Child count
@@ -210,7 +209,7 @@ Displays:
 - Filter by: All, Infant, Toddler, Child
 - "Add Child" action button
 
-<img src="flutter_app/assets/images/patient.png" width="300" alt="Children Profile View">
+<img src="assets/images/patient.png" width="300" alt="Children Profile View">
 
 Detailed view showing:
 - Child avatar
@@ -218,7 +217,7 @@ Detailed view showing:
 - Tabs for Pregnancy, Children, and Appointments
 
 #### 💉 Immunization Card
-<img src="flutter_app/assets/images/immunization-card.png" width="300" alt="Immunization Card Screen">
+<img src="assets/images/immunization-card.png" width="300" alt="Immunization Card Screen">
 
 For each child:
 - Immunization status badge (Up to date / Overdue)
@@ -227,7 +226,7 @@ For each child:
 - Track vaccination schedule
 
 #### 📅 Upcoming Appointments
-<img src="flutter_app/assets/images/appointments-mother.png" width="300" alt="Mother Appointments Screen">
+<img src="assets/images/appointments-mother.png" width="300" alt="Mother Appointments Screen">
 
 Real data fetched from `upcomingAppointmentsProvider`
 
