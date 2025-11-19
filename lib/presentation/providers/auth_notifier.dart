@@ -1,5 +1,6 @@
 /// Clean Authentication State Notifier
 /// Fixed email verification and profile loading flow
+/// UPDATED: Added clinic relation join in _loadUserProfile
 library;
 
 import 'dart:async';
@@ -24,7 +25,6 @@ class AuthState with _$AuthState {
   const factory AuthState.phoneVerificationPending(String phone) =
       PhoneVerificationPending;
 
-  // NEW: Add this state for healthcare providers waiting for manual verification
   const factory AuthState.pendingVerification({
     required String email,
     required UserRole role,
@@ -39,19 +39,13 @@ final authNotifierProvider =
   return AuthNotifier();
 });
 
-// Storage for pending signup data (waiting for email verification)
-
-/// Auth Notifier Updates - For normalized schema with clinics table
-/// Key changes: Use clinic_id instead of facility fields
-
-// 1. Update _PendingSignupData to store clinic_id
 class _PendingSignupData {
   final String fullName;
   final String email;
   final String? phoneE164;
   final UserRole role;
   final String? licenseNumber;
-  final String? clinicId; // Changed from facility fields to clinic_id
+  final String? clinicId;
   final bool isActive;
 
   _PendingSignupData({
@@ -98,7 +92,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         if (error.message.contains('flow_state_not_found') ||
             error.message.contains('invalid flow state')) {
           print('⚠️ Invalid deep link, ignoring...');
-          // After email verification, try to complete any pending signup
           if (_pendingSignupData != null) {
             print('🔄 Found pending signup data, attempting to complete...');
             Future.microtask(() => _completePendingSignup());
@@ -126,11 +119,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     print('   Has pending data: ${_pendingSignupData != null}');
     print('   Last processed: $_lastProcessedUserId');
 
-    // Check if we have pending signup data (after email verification)
     if (_pendingSignupData != null) {
-      // If email is verified, complete the signup
       if (user?.emailConfirmedAt != null) {
-        // Check if we already completed this signup
         final profileExists = await _checkProfileExists(currentUserId);
 
         if (profileExists) {
@@ -149,7 +139,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return;
     }
 
-    // No pending signup data - just load the profile
     await _loadUserProfile();
   }
 
@@ -192,6 +181,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  // ============================================================================
+  // 🔥 FIXED: Added clinic join to this method
+  // ============================================================================
   Future<void> _loadUserProfile() async {
     try {
       final userId = _supabase.auth.currentUser?.id;
@@ -203,9 +195,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       print('📖 Loading profile for user: $userId');
 
+      // 🔥 KEY FIX: Added clinic relation join using the foreign key
       final response = await _supabase
           .from('users')
-          .select()
+          .select('*, clinic:clinics!clinic_id(*)')  // 🔥 THIS IS THE FIX
           .eq('id', userId)
           .maybeSingle()
           .timeout(
@@ -216,8 +209,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         },
       );
 
-      print(
-          '📦 Response received: ${response != null ? "Data found" : "No data"}');
+      print('📦 Response received: ${response != null ? "Data found" : "No data"}');
+      
+      // Debug: Print clinic data if available
+      if (response != null && response['clinic'] != null) {
+        print('✅ Clinic data loaded: ${response['clinic']}');
+      } else if (response != null) {
+        print('⚠️ No clinic data in response (clinic_id might be null)');
+      }
 
       if (response == null) {
         print('⚠️ No profile found in database');
@@ -229,10 +228,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           return;
         }
 
-        // Check if we have pending signup data that should be completed
         if (_pendingSignupData != null && authUser.emailConfirmedAt != null) {
-          print(
-              '🔄 Found pending signup with verified email, completing now...');
+          print('🔄 Found pending signup with verified email, completing now...');
           await _completePendingSignup();
           return;
         }
@@ -246,8 +243,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         print('🔄 Parsing user entity...');
 
         final user = UserEntity.fromJson(response);
-        print(
-            '✅ Profile loaded successfully for: ${user.fullName} (${user.role.name})');
+        print('✅ Profile loaded successfully for: ${user.fullName} (${user.role.name})');
+        
+        // Debug: Check if clinic was parsed
+        if (user.clinic != null) {
+          print('✅ Clinic object available: ${user.clinic!.name}');
+        } else {
+          print('⚠️ Clinic object is null after parsing');
+        }
+        
         state = AuthState.authenticated(user);
       } catch (parseError, stackTrace) {
         print('❌ Error parsing user entity: $parseError');
@@ -283,7 +287,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required UserRole role,
     String? phoneE164,
     String? licenseNumber,
-    String? clinicId, // Changed: now just pass the clinic_id
+    String? clinicId,
   }) async {
     if (_isProcessingSignup) {
       print('⚠️ Signup already in progress');
@@ -334,13 +338,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
           phoneE164: phoneE164,
           role: role,
           licenseNumber: licenseNumber,
-          clinicId: clinicId, // Pass clinic_id
+          clinicId: clinicId,
           isActive: !isProvider,
         );
 
         if (isProvider) {
-          print(
-              '🏥 Healthcare provider signup - setting pending verification state');
+          print('🏥 Healthcare provider signup - setting pending verification state');
           state = AuthState.pendingVerification(
             email: email,
             role: role,
@@ -359,7 +362,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           phoneE164: phoneE164,
           role: role,
           licenseNumber: licenseNumber,
-          clinicId: clinicId, // Store clinic_id
+          clinicId: clinicId,
           isActive: !isProvider,
         );
 
@@ -385,7 +388,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-// 3. Update _completePendingSignup
   Future<void> _completePendingSignup() async {
     if (_pendingSignupData == null) {
       print('⚠️ No pending signup data to complete');
@@ -442,7 +444,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         phoneE164: data.phoneE164,
         role: data.role,
         licenseNumber: data.licenseNumber,
-        clinicId: data.clinicId, // Use clinic_id
+        clinicId: data.clinicId,
         isActive: !isProvider,
       );
 
@@ -662,7 +664,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String fullName,
     required UserRole role,
     required String licenseNumber,
-    String? clinicId, // Changed from facility fields
+    String? clinicId,
   }) async {
     if (_isProcessingSignup) {
       print('⚠️ Signup already in progress');
@@ -708,8 +710,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         phoneE164: validatedPhone,
         role: role,
         licenseNumber: licenseNumber,
-        clinicId: clinicId, // Use clinic_id
-        isActive: false, // Providers need verification
+        clinicId: clinicId,
+        isActive: false,
       );
 
       await _loadUserProfile();
@@ -731,8 +733,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // HELPER METHODS
   // ============================================================================
 
-  // Replace the _createUserProfile method in your auth_notifier.dart with this:
-
   Future<void> _createUserProfile({
     required String userId,
     required String fullName,
@@ -740,7 +740,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? email,
     String? phoneE164,
     String? licenseNumber,
-    String? clinicId, // Single clinic_id reference
+    String? clinicId,
     bool isActive = true,
   }) async {
     try {
@@ -780,7 +780,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         metadata['verification_status'] = 'pending';
       }
 
-      // Build insert data
       final insertData = {
         'id': userId,
         'full_name': fullName,
@@ -792,7 +791,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'metadata': metadata,
       };
 
-      // Add optional fields
       if (email != null && email.isNotEmpty) {
         insertData['email'] = email;
       }
@@ -803,7 +801,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         insertData['license_number'] = licenseNumber;
       }
 
-      // Add clinic_id - this is the key field for the normalized schema
       if (clinicId != null && clinicId.isNotEmpty) {
         insertData['clinic_id'] = clinicId;
       }
@@ -828,7 +825,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       if (e.code == '23503') {
-        // Foreign key violation - clinic_id doesn't exist
         throw Exception(
             'Invalid clinic_id: The selected facility was not found in the database. '
             'Please try selecting the facility again.');
@@ -864,9 +860,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _devModeLogin(String phoneNumber) async {
+    // 🔥 Also add clinic join here for dev mode login
     final userResponse = await _supabase
         .from('users')
-        .select()
+        .select('*, clinic:clinics!clinic_id(*)')
         .eq('phone_e164', phoneNumber)
         .maybeSingle();
 

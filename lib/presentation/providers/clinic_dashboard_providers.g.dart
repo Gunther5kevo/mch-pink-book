@@ -6,7 +6,7 @@ part of 'clinic_dashboard_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$clinicStatsHash() => r'e5fd1ebb2beb781a629a8b473a479c24da1fadaa';
+String _$clinicStatsHash() => r'98c46dd15faa47c047b60925075d228a1b8782ac';
 
 /// ═══════════════════════════════════════════════════════════════════════
 /// 📊 MAIN CLINIC STATS PROVIDER
@@ -24,7 +24,7 @@ final clinicStatsProvider = AutoDisposeFutureProvider<ClinicStats>.internal(
 );
 
 typedef ClinicStatsRef = AutoDisposeFutureProviderRef<ClinicStats>;
-String _$activePregnanciesHash() => r'6065c3f09f193d7220c01769d787c3b80b3fa831';
+String _$activePregnanciesHash() => r'ff2ae85ab704512b5e5a38e5a435c5b3d1ded412';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -47,17 +47,25 @@ class _SystemHash {
   }
 }
 
-/// See also [activePregnancies].
+/// FIXED: Get pregnancies via proper JOIN with fallback
+///
+/// Copied from [activePregnancies].
 @ProviderFor(activePregnancies)
 const activePregnanciesProvider = ActivePregnanciesFamily();
 
-/// See also [activePregnancies].
+/// FIXED: Get pregnancies via proper JOIN with fallback
+///
+/// Copied from [activePregnancies].
 class ActivePregnanciesFamily
     extends Family<AsyncValue<List<PregnancyWithMother>>> {
-  /// See also [activePregnancies].
+  /// FIXED: Get pregnancies via proper JOIN with fallback
+  ///
+  /// Copied from [activePregnancies].
   const ActivePregnanciesFamily();
 
-  /// See also [activePregnancies].
+  /// FIXED: Get pregnancies via proper JOIN with fallback
+  ///
+  /// Copied from [activePregnancies].
   ActivePregnanciesProvider call(
     PregnancyFilter filter,
   ) {
@@ -90,10 +98,14 @@ class ActivePregnanciesFamily
   String? get name => r'activePregnanciesProvider';
 }
 
-/// See also [activePregnancies].
+/// FIXED: Get pregnancies via proper JOIN with fallback
+///
+/// Copied from [activePregnancies].
 class ActivePregnanciesProvider
     extends AutoDisposeFutureProvider<List<PregnancyWithMother>> {
-  /// See also [activePregnancies].
+  /// FIXED: Get pregnancies via proper JOIN with fallback
+  ///
+  /// Copied from [activePregnancies].
   ActivePregnanciesProvider(
     PregnancyFilter filter,
   ) : this._internal(
@@ -199,7 +211,7 @@ final highRiskMothersProvider =
 
 typedef HighRiskMothersRef
     = AutoDisposeFutureProviderRef<List<PregnancyWithMother>>;
-String _$highRiskBreakdownHash() => r'47daba68747f370561cda1bd5ef91a50ceea11af';
+String _$highRiskBreakdownHash() => r'a5923e35fb4a30aed43ebb1bde9fce9ed7a7ad5f';
 
 /// See also [highRiskBreakdown].
 @ProviderFor(highRiskBreakdown)
@@ -215,7 +227,7 @@ final highRiskBreakdownProvider =
 );
 
 typedef HighRiskBreakdownRef = AutoDisposeFutureProviderRef<Map<String, int>>;
-String _$defaultersHash() => r'56b143b61ac545559a218b1983fb3dbe33000d87';
+String _$defaultersHash() => r'23eb6d7c66dab3fa4010ae2b28ed0ede4430b288';
 
 /// See also [defaulters].
 @ProviderFor(defaulters)
@@ -229,7 +241,7 @@ final defaultersProvider = AutoDisposeFutureProvider<List<Defaulter>>.internal(
 );
 
 typedef DefaultersRef = AutoDisposeFutureProviderRef<List<Defaulter>>;
-String _$todayTasksHash() => r'f805801b56fdd07af96f896a416bafc85246d4f1';
+String _$todayTasksHash() => r'1d700578c067e4d98231818b2f7e02cedeb8150b';
 
 /// See also [todayTasks].
 @ProviderFor(todayTasks)
@@ -244,7 +256,7 @@ final todayTasksProvider = AutoDisposeFutureProvider<TodayTasks>.internal(
 
 typedef TodayTasksRef = AutoDisposeFutureProviderRef<TodayTasks>;
 String _$immunizationsDueSummaryHash() =>
-    r'c683b001cf6248f84229a724d575cb05b605b854';
+    r'769efbdb9dbd4018d549d4637ba7c5895357b435';
 
 /// See also [immunizationsDueSummary].
 @ProviderFor(immunizationsDueSummary)

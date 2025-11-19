@@ -72,24 +72,44 @@ class _NurseHomeScreenState extends ConsumerState<NurseHomeScreen> {
     );
   }
 
- PreferredSizeWidget _buildAppBar(BuildContext context, dynamic user) {
+PreferredSizeWidget _buildAppBar(BuildContext context, dynamic user) {
   return AppBar(
     backgroundColor: AppColors.primaryPink,
     foregroundColor: Colors.white,
     title: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text('MCH Dashboard', style: AppTextStyles.h2),
-        if (user?.clinic != null) ...[
-          const SizedBox(height: 2),
+        // Welcome message with user's name
+        Text(
+          user?.fullName != null ? 'Welcome ${user!.fullName}' : 'MCH Dashboard',
+          style: AppTextStyles.h2.copyWith(fontSize: 18),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (user?.clinic?.name != null) ...[
+          const SizedBox(height: 1),
+          // Show clinic name
           Text(
-            user!.clinic!.mflCode != null
-                ? 'MFL: ${user.clinic!.mflCode}'
-                : user.clinic!.name,
+            user.clinic.name,
             style: AppTextStyles.caption.copyWith(
               color: Colors.white.withOpacity(0.9),
               fontSize: 11,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ] else if (user?.effectiveFacilityName != null) ...[
+          const SizedBox(height: 1),
+          // Fallback to legacy facility name
+          Text(
+            user.effectiveFacilityName!,
+            style: AppTextStyles.caption.copyWith(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 11,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ],

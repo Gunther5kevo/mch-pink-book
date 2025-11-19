@@ -557,7 +557,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
                 if (!v) _expectedDeliveryDate = null;
               })
           : null,
-      activeThumbColor: AppColors.primaryPink,
+      activeColor: AppColors.primaryPink,
       secondary: Icon(_isPregnant ? Icons.pregnant_woman : Icons.person, color: AppColors.primaryPink),
     );
   }
@@ -602,7 +602,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
 
   Widget _buildClinicDropdown() {
     return DropdownButtonFormField<String>(
-      initialValue: _preferredClinic,
+      value: _preferredClinic != null && _clinics.contains(_preferredClinic) ? _preferredClinic : null,
       decoration: InputDecoration(
         labelText: 'Preferred Health Facility',
         prefixIcon: const Icon(Icons.local_hospital),
@@ -612,6 +612,7 @@ class _MotherProfileScreenState extends ConsumerState<MotherProfileScreen> {
       ),
       items: _clinics.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
       onChanged: _isEditing ? (v) => setState(() => _preferredClinic = v) : null,
+      disabledHint: _preferredClinic != null ? Text(_preferredClinic!) : const Text('Not set'),
     );
   }
 
